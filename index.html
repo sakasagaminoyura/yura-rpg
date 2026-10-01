@@ -2249,7 +2249,19 @@ html, body {
         choicesEl.appendChild(btn);
       });
     } else {
-      $("#dialogue-hint").textContent = "クリック / Enter / Space で進む";
+      // Visible tap target for phone/mouse (keyboard Enter/Space still works)
+      const cont = document.createElement("button");
+      cont.type = "button";
+      cont.id = "btn-story-continue";
+      cont.className = "btn btn-gold btn-sm btn-block";
+      cont.textContent = "つづける";
+      cont.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        advanceStory();
+      };
+      choicesEl.appendChild(cont);
+      $("#dialogue-hint").textContent = "「つづける」または Enter / Space";
     }
     refreshAllHuds();
   }
@@ -5518,6 +5530,8 @@ html, body {
   }
 
   function leaveExploreToLocation(locId) {
+    // Keep field position so rematch-decline / resume can return smoothly
+    saveExploreResume();
     stopExploreLoop();
     explore = null;
     visitLocation(locId);
@@ -6497,6 +6511,40 @@ html, body {
     ]);
   }
 
+  /** After declining rematch: back to field/nest without forcing title/menu. */
+  function returnAfterRematchDecline() {
+    hideModal();
+    if (state._exploreResume || state._forestExploreResume) {
+      resumeExplore("再戦を断ってフィールドへ戻った。");
+      return;
+    }
+    if (explore && (explore.mapId === "overworld" || explore.mapId === "forest")) {
+      explore.encounterLock = false;
+      showScreen("explore");
+      renderExplore();
+      setExploreMsg("再戦を断ってフィールドへ戻った。");
+      refreshAllHuds();
+      return;
+    }
+    if (state.location === "nest") {
+      openNestHub();
+      return;
+    }
+    const fieldStarts = [
+      "village", "villageA", "villageB", "castle", "pass", "shrine",
+      "cliff", "shadow", "well", "hill", "slayer", "monkpath", "tomb",
+      "windfield", "mirror", "mother", "whitepath", "orchard", "kaede",
+    ];
+    if (fieldStarts.indexOf(state.location) >= 0) {
+      enterExplore("overworld", { from: state.location, skipWalkIntro: true });
+      setExploreMsg("再戦を断ってフィールドへ戻った。");
+      return;
+    }
+    // Fallback: walkable overworld near nest, not abstract menu
+    enterExplore("overworld", { from: "nest", skipWalkIntro: true });
+    setExploreMsg("再戦を断ってフィールドへ戻った。");
+  }
+
   function showRematch(title, enemies, onWin) {
     $("#modal-title").textContent = title;
     $("#modal-body").textContent = "再戦しますか？（報酬は少なめ）";
@@ -6510,11 +6558,8 @@ html, body {
     };
     const no = document.createElement("button");
     no.className = "btn";
-    no.textContent = "やめる";
-    no.onclick = () => {
-      hideModal();
-      enterMap();
-    };
+    no.textContent = "再戦を断る";
+    no.onclick = () => returnAfterRematchDecline();
     $("#modal-btns").append(yes, no);
     showModal();
   }
