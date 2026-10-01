@@ -1247,6 +1247,7 @@ html, body {
         hillReady: false, // legacy (unused; hill finale removed)
         inuyashaSlain: false,
         silverHairTaken: false,
+        shikonShardsTaken: false,
         ending: null, // shards | path
         battlesWon: 0,
         gameDay: 1, // in-game day (rest / battle pace)
@@ -2783,6 +2784,7 @@ html, body {
     state.flags.scene = Math.max(state.flags.scene, 6);
     state.flags.inuyashaSlain = true;
     state.flags.silverHairTaken = true;
+    state.flags.shikonShardsTaken = true;
     state.player.youriki = clamp(state.player.youriki + 40, 0, state.player.maxYouriki);
     maybeTriggerNestRaidAfterBattle();
     startStory([
@@ -2822,8 +2824,18 @@ html, body {
         img: ASSETS.dialogue,
       },
       {
+        speaker: "",
+        text: "続いて黒髪が、倒れたかごめの懐を探る——淡く光る四魂の玉の欠片を、指先で掬い上げた。\n巫女が守っていた力が、いまや髪鬼の手にある。",
+        img: ASSETS.dramatic,
+      },
+      {
         speaker: "結羅",
-        text: "四魂の欠片への邪魔者は、消えた。\n巣へ戻ろう——次も、同じように愛でるわよ。ふふっ。",
+        text: "……ふふ。やはり、ここにもあったわね。\n四魂の玉の欠片——ええ、遠慮なく頂くわ。最初から、妾のものよ。",
+        img: ASSETS.dialogue,
+      },
+      {
+        speaker: "結羅",
+        text: "銀髪も、首も、欠片も——すべて手に入れた。\n邪魔者は消えたわ。巣へ戻るわよ。ふふっ。",
         img: ASSETS.dramatic,
       },
     ]);
