@@ -5335,30 +5335,44 @@ html, body {
     let encMsg;
     let winMsg;
     let yourikiBonus;
+    let toastMsg;
     if (rareDragon) {
       foes = [makeEnemy(ENEMY_TMPL.dragon, "龍")];
-      encMsg = "……！　強大な気配——Lv45の龍が現れた！！";
+      encMsg = "……！　強大な気配——Lv45の龍に遭遇した！！";
       winMsg = "龍を退けた……稀な獲物だったわ。";
       yourikiBonus = 40;
-      toast("激レア遭遇！　龍！！");
+      toastMsg = "激レア遭遇！　龍！！";
     } else {
       const n = Math.random() < 0.35 ? 2 : 1;
       foes = [];
       for (let i = 0; i < n; i++) {
         foes.push(makeEnemy(ENEMY_TMPL.stray, n > 1 ? "野良の妖怪" + (i + 1) : "野良の妖怪"));
       }
-      encMsg = "野良の妖怪が現れた！";
+      encMsg = n > 1 ? "野良妖怪に遭遇した！（" + n + "体）" : "野良妖怪に遭遇した！";
       winMsg = "野良の妖怪を退けた。";
       yourikiBonus = 6;
-      toast("エンカウント！");
+      toastMsg = "野良妖怪に遭遇した！";
     }
     setExploreMsg(encMsg);
-    beginCombat(foes, () => {
-      state.flags.battlesWon++;
-      state.player.youriki = clamp(state.player.youriki + yourikiBonus, 0, state.player.maxYouriki);
-      maybeTriggerNestRaidAfterBattle();
-      resumeExplore(winMsg);
-    });
+    toast(toastMsg);
+    // いきなり戦闘画面に飛ばず、遭遇表示のあと押してから戦闘へ
+    $("#modal-title").textContent = "遭遇";
+    $("#modal-body").textContent = encMsg;
+    $("#modal-btns").innerHTML = "";
+    const go = document.createElement("button");
+    go.className = "btn btn-gold";
+    go.textContent = "戦闘へ";
+    go.onclick = () => {
+      hideModal();
+      beginCombat(foes, () => {
+        state.flags.battlesWon++;
+        state.player.youriki = clamp(state.player.youriki + yourikiBonus, 0, state.player.maxYouriki);
+        maybeTriggerNestRaidAfterBattle();
+        resumeExplore(winMsg);
+      });
+    };
+    $("#modal-btns").appendChild(go);
+    showModal();
   }
 
   function resumeExplore(msg) {
