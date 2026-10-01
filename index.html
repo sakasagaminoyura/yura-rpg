@@ -1013,6 +1013,13 @@ html, body {
   const MIN_NEST_RAID_LEVEL = 10; // ≥10; was 12 (prior), 6 (original)
   const MAX_COMB = 300; // 魂櫛 HP
   const NEST_DEFENSE_HUNTERS = 20;
+  // Special nest threat (dragon / naraku) — separate from Lv10 daily ambush
+  const SPECIAL_NEST_SHARD_GATE = 6;
+  const SPECIAL_NEST_OMEN_WINDOW = 3; // in-game days after omen until raid window ends
+  const SPECIAL_NEST_COOLDOWN_DAYS = 8; // min days between special threats
+  const SPECIAL_NEST_OMEN_CHANCE = 0.2; // chance on eligible day-advance / post-battle check
+  const SPECIAL_NEST_RAID_CHANCE = 0.4; // chance each day after omen (last day = guaranteed)
+  const SPECIAL_NEST_RAID_TURNS = 5;
   const LEVEL_CLOTHES_GROWTH = 10;
   const LEVEL_YOURIKI_GROWTH = 8;
   const LEVEL_CLOTHES_REFILL = 20;
@@ -1538,6 +1545,10 @@ html, body {
         battlesWon: 0,
         gameDay: 1, // in-game day (rest / battle pace)
         lastNestRaidDay: 0, // last day a nest raid fired
+        // Special nest threat (dragon/naraku): omen then raid. Persist in save.
+        specialNestOmen: null, // { kind: 'dragon'|'naraku', day: number } while omen active
+        lastSpecialNestDay: 0, // day omen fired or raid resolved (cooldown anchor)
+        specialNestWins: 0, // times special nest defense cleared
       },
       player: {
         name: "結羅",
@@ -1559,7 +1570,7 @@ html, body {
       unlocked: 3, // nest + village + forest from the start
       inCombat: false,
       // 魂櫛は巣穴に隠す。フィールドでは耐久度を扱わない。
-      // nestRaid: { turnsLeft } — 巣の奇襲の残り緊急ターン
+      // nestRaid: { turnsLeft, special?, kind? } — 巣の奇襲 / 特別脅威の残り緊急ターン
       nestRaid: null,
     };
   }
@@ -1721,7 +1732,14 @@ html, body {
       state = Object.assign(defaultState(), parsed);
       state.player = migratePlayer(parsed.player);
       state.flags = Object.assign(defaultState().flags, parsed.flags || {});
-      if (!parsed.nestRaid || state.player.level < MIN_NEST_RAID_LEVEL) state.nestRaid = null;
+      if (!parsed.nestRaid) {
+        state.nestRaid = null;
+      } else if (parsed.nestRaid.special) {
+        // Special raids are gated by shards, not level
+        if (shardCount() < SPECIAL_NEST_SHARD_GATE) state.nestRaid = null;
+      } else if (state.player.level < MIN_NEST_RAID_LEVEL) {
+        state.nestRaid = null;
+      }
       // 序盤から狩りへ出られるよう、村はずれ・森は最低でも解放
       if ((state.unlocked || 0) < 3) state.unlocked = 3;
       if (state.flags.nestAwake && !state.flags.hairGathered) state.flags.hairGathered = true;
@@ -1788,7 +1806,7 @@ html, body {
       el.textContent = "欠片 " + (state.flags.shikonShards || 0) + "/" + SHARD_GOAL;
     });
 
-    // 巣の奇襲バナー
+    // 巣の奇襲／特別脅威バナー
     let banner = root.querySelector(".raid-banner");
     if (state.nestRaid && state.nestRaid.turnsLeft > 0) {
       if (!banner) {
@@ -1796,8 +1814,14 @@ html, body {
         banner.className = "raid-banner";
         root.appendChild(banner);
       }
-      banner.textContent =
-        "⚠ 巣の奇襲！ 残り" + state.nestRaid.turnsLeft + "T — 急いで巣穴へ！";
+      if (state.nestRaid.special) {
+        const kn = state.nestRaid.kind === "naraku" ? "奈落" : "竜";
+        banner.textContent =
+          "⚠ 特別な気配！" + kn + "が巣を襲撃中！ 残り" + state.nestRaid.turnsLeft + "T — 急いで巣穴へ！";
+      } else {
+        banner.textContent =
+          "⚠ 巣の奇襲！ 残り" + state.nestRaid.turnsLeft + "T — 急いで巣穴へ！";
+      }
       banner.style.display = "block";
     } else if (banner) {
       banner.style.display = "none";
@@ -2212,6 +2236,8 @@ html, body {
               c.startCombat.onLose,
               {
                 nestDefense: !!c.startCombat.nestDefense,
+                specialNest: !!c.startCombat.specialNest,
+                specialNestKind: c.startCombat.specialNestKind || null,
                 remoteHair: !!c.startCombat.remoteHair,
               }
             );
@@ -2242,6 +2268,8 @@ html, body {
       state._afterStoryCombat = null;
       beginCombat(c.enemies, c.onWin, c.onLose, {
         nestDefense: !!c.nestDefense,
+        specialNest: !!c.specialNest,
+        specialNestKind: c.specialNestKind || null,
         remoteHair: !!c.remoteHair,
       });
       return;
@@ -3620,15 +3648,17 @@ html, body {
     // Nest raids are locked until MIN_NEST_RAID_LEVEL, including all callers and old saves.
     if (!canTriggerNestRaid()) return;
     if (state.nestRaid) return;
+    // 特別な気配のあいだはふだんの奇襲と重ねない
+    if (state.flags.specialNestOmen) return;
     if (state.location === "nest" && !(combat && combat.nestDefense)) return;
     if (!state.flags.nestAwake) return;
-    state.nestRaid = { turnsLeft: NEST_RAID_TURNS };
+    state.nestRaid = { turnsLeft: NEST_RAID_TURNS, special: false };
     const msg =
       "⚠ 巣の奇襲！" +
       (reason ? "（" + reason + "）" : "") +
       " 敵が巣穴の魂櫛を狙っている！ 残り" +
       NEST_RAID_TURNS +
-      "ターン以内に戻れ！";
+      "ターン以内に戻れ！（ふだんの奇襲）";
     toast(msg);
     if (combat && !combat.finished && !combat.nestDefense) {
       addLog("⚠ 巣の奇襲！ 魂櫛が危ない——急いで巣へ戻れ！", "sys");
@@ -3686,8 +3716,11 @@ html, body {
 
   /** After a field battle win (away from nest): about once per in-game day. */
   function maybeTriggerNestRaidAfterBattle() {
+    // Midgame special threat check (shards>=6); independent of Lv10 daily ambush
+    maybeProgressSpecialNestThreat("battle");
     if (!canTriggerNestRaid()) return;
     if (state.nestRaid) return;
+    if (state.flags.specialNestOmen) return; // 特別な気配のあいだはふだんの奇襲を抑止
     if (state.location === "nest") return;
     if (!state.flags.nestAwake || !state.flags.hairGathered) return;
     const won = state.flags.battlesWon || 0;
@@ -3703,6 +3736,7 @@ html, body {
   function maybeTriggerNestRaidMidCombat() {
     if (!canTriggerNestRaid()) return;
     if (state.nestRaid) return;
+    if (state.flags.specialNestOmen) return;
     if (!combat || combat.nestDefense || combat.remoteHair || combat.finished) return;
     if (state.location === "nest") return;
     if (!state.flags.nestAwake || !state.flags.hairGathered) return;
@@ -3727,7 +3761,16 @@ html, body {
   }
 
   function beginNestDefense() {
-    if (!canTriggerNestRaid() || !state.nestRaid) {
+    if (!state.nestRaid) {
+      enterMap();
+      return;
+    }
+    // Special threat (dragon/naraku) uses a separate defense flow
+    if (state.nestRaid.special) {
+      beginSpecialNestDefense();
+      return;
+    }
+    if (!canTriggerNestRaid()) {
       state.nestRaid = null;
       enterMap();
       return;
@@ -3737,7 +3780,7 @@ html, body {
     startStory([
       {
         speaker: "結羅",
-        text: "巣穴に……敵の気配！？ 魂櫛が狙われている！",
+        text: "巣穴に……敵の気配！？ 魂櫛が狙われている！（ふだんの奇襲ね……）",
         img: ASSETS.dramatic,
       },
       {
@@ -3807,11 +3850,21 @@ html, body {
 
   function showRaidUrgentOnMap() {
     if (!state.nestRaid) return;
-    $("#modal-title").textContent = "⚠ 巣の奇襲！";
-    $("#modal-body").textContent =
-      "敵が巣穴を襲っている！\n残り緊急ターン：" +
-      state.nestRaid.turnsLeft +
-      "\n\n魂櫛は巣にしかない。間に合わなければ魂は砕ける。";
+    if (state.nestRaid.special) {
+      const kn = specialNestKindLabel(state.nestRaid.kind);
+      $("#modal-title").textContent = "⚠ 特別な気配！" + kn + "の襲撃！";
+      $("#modal-body").textContent =
+        kn +
+        "が巣穴の魂櫛を狙っている！\n残り緊急ターン：" +
+        state.nestRaid.turnsLeft +
+        "\n\nふだんの退治屋の奇襲とは違う——特別な相手よ。間に合わなければ魂は砕ける。";
+    } else {
+      $("#modal-title").textContent = "⚠ 巣の奇襲！";
+      $("#modal-body").textContent =
+        "敵が巣穴を襲っている！\n残り緊急ターン：" +
+        state.nestRaid.turnsLeft +
+        "\n\n魂櫛は巣にしかない。間に合わなければ魂は砕ける。";
+    }
     $("#modal-btns").innerHTML = "";
     const rush = document.createElement("button");
     rush.className = "btn btn-danger";
@@ -3833,6 +3886,269 @@ html, body {
     showModal();
   }
 
+
+
+
+  // ---------- Special nest threat (dragon / naraku) ----------
+  // Gate: shards >= 6. Omen first, then rare raid within a few days.
+  // Separate from Lv10 daily nest ambush.
+
+  function specialNestKindLabel(kind) {
+    return kind === "naraku" ? "奈落" : "竜";
+  }
+
+  function canSpecialNestThreat() {
+    if (!state.flags.nestAwake || !state.flags.hairGathered) return false;
+    if (shardCount() < SPECIAL_NEST_SHARD_GATE) return false;
+    return true;
+  }
+
+  function pickSpecialNestKind() {
+    if (state.flags.narakuMet && Math.random() < 0.55) return "naraku";
+    if (Math.random() < 0.5) return "naraku";
+    return "dragon";
+  }
+
+  function makeSpecialNestEnemies(kind) {
+    if (kind === "naraku") {
+      return [
+        makeEnemy(ENEMY_TMPL.naraku, "巣を狙う奈落"),
+        makeEnemy(ENEMY_TMPL.stray, "最猛勝の群れ"),
+        makeEnemy(ENEMY_TMPL.stray, "虫の妖怪"),
+      ];
+    }
+    return [
+      makeEnemy(ENEMY_TMPL.dragon, "巣を狙う竜"),
+      makeEnemy(ENEMY_TMPL.stray, "眷属の妖怪"),
+    ];
+  }
+
+  /** Day-advance / post-battle: omen or escalate omen → raid. source: rest|battle */
+  function maybeProgressSpecialNestThreat(source) {
+    if (!canSpecialNestThreat()) return;
+    if (state.nestRaid) return;
+    const day = currentGameDay();
+    const omen = state.flags.specialNestOmen;
+
+    if (omen && omen.kind) {
+      const elapsed = day - (omen.day || day);
+      if (elapsed < 0) {
+        state.flags.specialNestOmen.day = day;
+        return;
+      }
+      if (elapsed > SPECIAL_NEST_OMEN_WINDOW) {
+        state.flags.specialNestOmen = null;
+        state.flags.lastSpecialNestDay = day;
+        toast("特別な気配は遠ざかった……今夜は無事ね。");
+        return;
+      }
+      const lastDay = elapsed >= SPECIAL_NEST_OMEN_WINDOW;
+      const roll = lastDay || Math.random() < SPECIAL_NEST_RAID_CHANCE;
+      if (!roll) return;
+      startSpecialNestRaid(omen.kind, source === "rest" ? "休息のあと" : "戦いのあと");
+      return;
+    }
+
+    // New omen only on rest (day advance) — avoid clobbering post-battle victory stories
+    if (source !== "rest") return;
+    const last = state.flags.lastSpecialNestDay || 0;
+    if (last && day - last < SPECIAL_NEST_COOLDOWN_DAYS) return;
+    if (day <= last) return;
+    if (Math.random() >= SPECIAL_NEST_OMEN_CHANCE) return;
+    beginSpecialNestOmen(pickSpecialNestKind());
+  }
+
+  function beginSpecialNestOmen(kind) {
+    if (!canSpecialNestThreat()) return;
+    if (state.flags.specialNestOmen || state.nestRaid) return;
+    const day = currentGameDay();
+    state.flags.specialNestOmen = { kind: kind, day: day };
+    state.flags.lastSpecialNestDay = day;
+    const kn = specialNestKindLabel(kind);
+    const lines =
+      kind === "naraku"
+        ? [
+            {
+              speaker: "結羅",
+              text: "……くっ。この粘つく妖気……奈落？　ふだんの退治屋の気配じゃないわ。",
+              img: ASSETS.dramatic,
+            },
+            {
+              speaker: "結羅",
+              text: "噂じゃなかったのね。あたしの巣の魂櫛を、あの男が欲しがってる……痕跡も、匂うわ。",
+              img: ASSETS.dialogue,
+            },
+            {
+              speaker: "結羅",
+              text: "特別な気配よ。数日のうちに、何か来る。油断したら魂櫛は終わり——あたしは逃げないわ。",
+              img: ASSETS.dramatic,
+            },
+          ]
+        : [
+            {
+              speaker: "結羅",
+              text: "……なによ、この気配。ふつうの奇襲じゃない……竜？　格が違うわ。",
+              img: ASSETS.dramatic,
+            },
+            {
+              speaker: "結羅",
+              text: "巣の周りに鱗の痕跡……噂どおり、強大なものがあたしの魂櫛を嗅ぎつけたのね。",
+              img: ASSETS.dialogue,
+            },
+            {
+              speaker: "結羅",
+              text: "特別な気配よ。あと数日、気を抜かないこと。巣を空けすぎたら、本気で壊されるわ。",
+              img: ASSETS.dramatic,
+            },
+          ];
+    toast("⚠ 特別な気配……" + kn + "の気配が巣に近づいている（ふだんの奇襲とは別）");
+    startStory(lines);
+  }
+
+  function startSpecialNestRaid(kind, reason) {
+    if (!canSpecialNestThreat()) return;
+    if (state.nestRaid) return;
+    kind = kind || (state.flags.specialNestOmen && state.flags.specialNestOmen.kind) || "dragon";
+    state.flags.specialNestOmen = null;
+    const kn = specialNestKindLabel(kind);
+    const atNest = state.location === "nest" && !(combat && combat.nestDefense);
+    state.nestRaid = {
+      turnsLeft: SPECIAL_NEST_RAID_TURNS,
+      special: true,
+      kind: kind,
+    };
+    state.flags.lastSpecialNestDay = currentGameDay();
+    const msg =
+      "⚠ 特別警報！" +
+      kn +
+      "が巣穴の魂櫛を襲っている！" +
+      (reason ? "（" + reason + "）" : "") +
+      " 残り" +
+      SPECIAL_NEST_RAID_TURNS +
+      "ターン以内に守れ！";
+    toast(msg);
+    if (combat && !combat.finished && !combat.nestDefense) {
+      addLog("⚠ 特別な襲撃！" + kn + "が魂櫛を狙っている——急いで巣へ！", "sys");
+      addLog("「巣へ急行」で戦闘を中断できる", "sys");
+    }
+    refreshAllHuds();
+    if (combat && !combat.finished) {
+      try {
+        renderCombat();
+      } catch (e) {}
+    }
+    if (atNest && !combat) {
+      beginSpecialNestDefense();
+    }
+  }
+
+  function beginSpecialNestDefense() {
+    if (!state.nestRaid || !state.nestRaid.special) {
+      if (!state.nestRaid) enterMap();
+      else beginNestDefense();
+      return;
+    }
+    const kind = state.nestRaid.kind || "dragon";
+    const kn = specialNestKindLabel(kind);
+    state.location = "nest";
+    refreshAllHuds();
+    const foes = makeSpecialNestEnemies(kind);
+    const intro =
+      kind === "naraku"
+        ? [
+            {
+              speaker: "結羅",
+              text: "やっぱり……奈落！　ふだんの退治屋の奇襲とは訳が違うわ！",
+              img: ASSETS.dramatic,
+            },
+            {
+              speaker: "奈落",
+              text: "髪鬼の結羅。巣の奥の魂櫛——頂くとしよう。あなたの力ごと、な。",
+              img: ASSETS.status,
+            },
+            {
+              speaker: "結羅",
+              text: "触らせない。ここはあたしの巣。魂櫛も、あたしのものよ！",
+              img: ASSETS.combat,
+            },
+          ]
+        : [
+            {
+              speaker: "結羅",
+              text: "来るわね……竜！　特別な気配の正体は、あんただったの！",
+              img: ASSETS.dramatic,
+            },
+            {
+              speaker: "巣を狙う竜",
+              text: "……（低い咆哮が巣穴を震わせる。狙いは明らかに魂櫛だ）",
+              img: ASSETS.status,
+            },
+            {
+              speaker: "結羅",
+              text: "あたしの魂櫛に牙を向けたこと、後悔させてあげるわ！",
+              img: ASSETS.combat,
+            },
+          ];
+    startStory(
+      intro.concat([
+        {
+          speaker: "",
+          text: "【特別防衛戦】" + kn + "——魂櫛を直接狙ってくる！　守れ！",
+          img: ASSETS.combat,
+          choices: [
+            {
+              label: "特別防衛する",
+              startCombat: {
+                enemies: foes,
+                onWin: afterSpecialNestDefenseWin,
+                onLose: showNestDefeatChoice,
+                nestDefense: true,
+                specialNest: true,
+                specialNestKind: kind,
+              },
+            },
+          ],
+        },
+      ])
+    );
+  }
+
+  function afterSpecialNestDefenseWin() {
+    state.flags.battlesWon++;
+    const kind = (state.nestRaid && state.nestRaid.kind) || "dragon";
+    const kn = specialNestKindLabel(kind);
+    clearNestRaid(true);
+    state.flags.specialNestOmen = null;
+    state.flags.lastSpecialNestDay = currentGameDay();
+    state.flags.specialNestWins = (state.flags.specialNestWins || 0) + 1;
+    state.player.youriki = clamp(state.player.youriki + 20, 0, state.player.maxYouriki);
+
+    if (!state._nestDefenseExpGranted) {
+      grantBattleExp(makeSpecialNestEnemies(kind));
+    }
+    state._nestDefenseExpGranted = null;
+
+    const nestBonus = 100;
+    state.player.exp += nestBonus;
+    if (combat) addLog("特別防衛ボーナス EXP +" + nestBonus + "！", "heal");
+    else toast("特別防衛ボーナス EXP +" + nestBonus + "！");
+    const bonusLevels = applyLevelUps(state.player);
+    if (bonusLevels > 0) toast("レベルアップ！");
+    refreshAllHuds();
+
+    startStory([
+      {
+        speaker: "結羅",
+        text: "ふぅ……" + kn + "を退けた。魂櫛は無事。特別な相手だったわね。",
+        img: ASSETS.dialogue,
+      },
+      {
+        speaker: "結羅",
+        text: "ふだんの奇襲とは格が違った……欠片を集めていると、こういうのも寄ってくるのね。あたしは負けないわ。",
+        img: ASSETS.dramatic,
+      },
+    ]);
+  }
 
 
   // ---------- Walkable explore (single overworld field) ----------
@@ -5110,7 +5426,12 @@ html, body {
     if (!btn) return;
     if (state.nestRaid && state.nestRaid.turnsLeft > 0) {
       btn.style.display = "";
-      btn.textContent = "巣へ急行！（残り" + state.nestRaid.turnsLeft + "T）";
+      if (state.nestRaid.special) {
+        const kn = state.nestRaid.kind === "naraku" ? "奈落" : "竜";
+        btn.textContent = "特別防衛へ！（" + kn + "／残り" + state.nestRaid.turnsLeft + "T）";
+      } else {
+        btn.textContent = "巣へ急行！（残り" + state.nestRaid.turnsLeft + "T）";
+      }
     } else {
       btn.style.display = "none";
     }
@@ -5238,6 +5559,7 @@ html, body {
         toast("休息した。全回復。（" + state.flags.gameDay + "日目）");
         setExploreMsg("ベッドで休んだ。服装・妖力・魂櫛が全快。（" + state.flags.gameDay + "日目）");
         refreshAllHuds();
+        maybeProgressSpecialNestThreat("rest");
         return true;
       }
       if (tile === "*") {
@@ -5881,7 +6203,7 @@ html, body {
     if (explore) explore.encounterLock = true;
     state.location = "nest";
     $("#modal-title").textContent = "結羅の巣（黒髪の玉）";
-    $("#modal-body").textContent =
+    let nestBody =
       "魂櫛はここにある（耐久 " +
       state.player.comb +
       "/" +
@@ -5891,6 +6213,14 @@ html, body {
       "/" +
       SHARD_GOAL +
       "。巣に歩行マップはない——休む・結界・セーブ・結末ができる。";
+    if (state.flags.specialNestOmen && state.flags.specialNestOmen.kind) {
+      const kn = state.flags.specialNestOmen.kind === "naraku" ? "奈落" : "竜";
+      nestBody +=
+        "\n\n⚠ 特別な気配：" +
+        kn +
+        "が巣に近づいている（ふだんの奇襲とは別）。数日のうちに襲撃があるかも。";
+    }
+    $("#modal-body").textContent = nestBody;
     $("#modal-btns").innerHTML = "";
 
     const add = (label, fn, cls) => {
@@ -5920,6 +6250,13 @@ html, body {
       state.flags.gameDay = (state.flags.gameDay || 1) + 1;
       toast("休息した。服装・妖力・魂櫛が全回復した。（" + state.flags.gameDay + "日目）");
       refreshAllHuds();
+      // Midgame special nest threat: day advance may bring omen or raid
+      const omenBefore = !!(state.flags.specialNestOmen);
+      maybeProgressSpecialNestThreat("rest");
+      // Omen / special defense stories take over — don't reopen nest menu on top
+      if (state.nestRaid && state.nestRaid.special) return;
+      if (!omenBefore && state.flags.specialNestOmen) return; // omen story just started
+      if ($("#screen-story") && $("#screen-story").classList.contains("active")) return;
       showNestMenu();
     });
 
@@ -6220,12 +6557,17 @@ html, body {
       selectedSkill: null,
       targetSelectLogged: false,
       nestDefense: !!opts.nestDefense,
+      specialNest: !!opts.specialNest,
+      specialNestKind: opts.specialNestKind || null,
       remoteHair: !!opts.remoteHair,
       _timers: [],
     };
     showScreen("combat");
     $("#combat-portrait").src = ASSETS.combat;
-    if (combat.nestDefense) {
+    if (combat.nestDefense && combat.specialNest) {
+      const kn = specialNestKindLabel(combat.specialNestKind || (state.nestRaid && state.nestRaid.kind));
+      addLog("【特別防衛戦】" + kn + "が魂櫛を直接狙う！　守れ！", "sys");
+    } else if (combat.nestDefense) {
       addLog("【巣の防衛戦】魂櫛を守れ！", "sys");
     } else if (combat.remoteHair) {
       addLog("【見えぬ髪の襲撃】結羅は巣に残り、黒髪だけで戦う！", "sys");
@@ -6502,10 +6844,13 @@ html, body {
       const rush = document.createElement("button");
       rush.className = "btn skill-btn btn-danger";
       rush.style.borderColor = "var(--red-bright)";
-      rush.innerHTML =
-        '<span class="sk-name">⚠ 巣へ急行</span><span class="sk-cost">戦闘を中断して巣の防衛へ（残り' +
-        state.nestRaid.turnsLeft +
-        "T）</span>";
+      rush.innerHTML = state.nestRaid.special
+        ? '<span class="sk-name">⚠ 特別防衛へ</span><span class="sk-cost">戦闘を中断し特別な襲撃から魂櫛を守れ（残り' +
+          state.nestRaid.turnsLeft +
+          "T）</span>"
+        : '<span class="sk-name">⚠ 巣へ急行</span><span class="sk-cost">戦闘を中断して巣の防衛へ（残り' +
+          state.nestRaid.turnsLeft +
+          "T）</span>";
       rush.onclick = () => {
         if (!combat || combat.finished) return;
         rushToNestFromCombat();
@@ -6746,12 +7091,28 @@ html, body {
       }
       // 魂櫛は巣穴にのみ存在。フィールドでは服装のみ被弾。
       // 巣の防衛戦では敵が魂櫛を狙う。裸時は櫛への集中度を上げる。
-      const combFocus = p.clothes <= 0 ? (foes.length >= 8 ? 0.22 : 0.5) : (foes.length >= 8 ? 0.1 : 0.42);
+      // 特別防衛（竜／奈落）は魂櫛狙いをさらに強める。
+      const specialDef = !!(combat.specialNest || (state.nestRaid && state.nestRaid.special));
+      let combFocus;
+      if (specialDef) {
+        combFocus = p.clothes <= 0 ? 0.72 : (e.isBoss ? 0.58 : 0.4);
+      } else {
+        combFocus = p.clothes <= 0 ? (foes.length >= 8 ? 0.22 : 0.5) : (foes.length >= 8 ? 0.1 : 0.42);
+      }
       let hitComb = defendingNest && Math.random() < combFocus;
       if (hitComb) {
-        const cDmg = Math.max(1, Math.round(p.maxComb / 25)); // ~12 when max=300
+        let cDmg = Math.max(1, Math.round(p.maxComb / 25)); // ~12 when max=300
+        if (specialDef && e.isBoss) cDmg = Math.max(cDmg, Math.round(p.maxComb / 18)); // ~16
         p.comb = clamp(p.comb - cDmg, 0, p.maxComb);
-        addLog(e.name + "が巣の魂櫛に斬り込む！ 魂櫛−" + cDmg + "（残り" + p.comb + "）！", "dmg");
+        addLog(
+          e.name +
+            (specialDef ? "が魂櫛を狙い撃つ！ 魂櫛−" : "が巣の魂櫛に斬り込む！ 魂櫛−") +
+            cDmg +
+            "（残り" +
+            p.comb +
+            "）！",
+          "dmg"
+        );
       } else {
         const dmg = calcIncomingClothesDamage(e);
         const wasClothed = p.clothes > 0;
