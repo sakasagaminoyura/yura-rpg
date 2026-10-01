@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <link rel="shortcut icon" href="favicon.ico?v=3" type="image/x-icon" />
+  <link rel="icon" href="favicon.ico?v=3" type="image/x-icon" />
   <title>逆髪の結羅 無料ブラウザゲーム｜犬夜叉ファン向け</title>
   <meta name="description" content="犬夜叉の逆髪の結羅が主人公の無料ファンRPG。ブラウザですぐプレイ。四魂の欠片を集めて冒険。" />
   <meta property="og:title" content="逆髪の結羅 無料ブラウザゲーム｜犬夜叉ファン向け" />
@@ -1577,25 +1579,39 @@ html, body {
 
   function showScreen(id) {
     if (id !== "explore") stopExploreLoop();
-    if (id === "title") hideToast();
+    if (id === "title" || id === "map") hideToast();
     $$(".screen").forEach((el) => el.classList.remove("active"));
     const s = $("#screen-" + id);
     if (s) s.classList.add("active");
   }
 
+  let toastTimer = null;
+
   function hideToast() {
     const t = $("#toast");
+    if (toastTimer) {
+      clearTimeout(toastTimer);
+      toastTimer = null;
+    }
     if (!t) return;
     t.classList.remove("show");
     t.textContent = "";
+    t.style.display = "none";
   }
 
   function toast(msg) {
     const t = $("#toast");
+    if (!t) return;
+    if (toastTimer) {
+      clearTimeout(toastTimer);
+      toastTimer = null;
+    }
+    t.style.display = "block";
     t.textContent = msg;
     t.classList.remove("show");
     void t.offsetWidth;
     t.classList.add("show");
+    toastTimer = setTimeout(hideToast, 1800);
   }
 
   function clamp(v, lo, hi) {
@@ -5870,6 +5886,7 @@ html, body {
 
     add("セーブ／メニュー", () => {
       saveGame();
+      hideToast();
       enterMap();
     });
 
@@ -6141,6 +6158,7 @@ html, body {
       onWin: onWin || (() => enterMap()),
       onLose: onLose || null,
       selectedSkill: null,
+      targetSelectLogged: false,
       nestDefense: !!opts.nestDefense,
       remoteHair: !!opts.remoteHair,
       _timers: [],
@@ -6459,9 +6477,13 @@ html, body {
         } else if (sk.target === "all") {
           executeSkill(sid, -1);
         } else {
-          if (combat.selectedSkill === sid) return; // 連打でログが増えないように
+          const switched = combat.selectedSkill !== sid;
           combat.selectedSkill = sid;
-          addLog(sk.name + " — 対象を選んでください", "sys");
+          // 同じ技の連打では出さない。別技に変えたときだけ出し直す
+          if (!combat.targetSelectLogged || switched) {
+            combat.targetSelectLogged = true;
+            addLog(sk.name + " — 対象を選んでください", "sys");
+          }
           renderCombat();
         }
       };
@@ -6656,7 +6678,10 @@ html, body {
       if (remoteHair) {
         const yDmg = Math.max(1, Math.min(3, e.atk));
         p.youriki = clamp(p.youriki - yDmg, 0, p.maxYouriki);
-        addLog(e.name + "が虚空の髪を払う！ 妖力−" + yDmg + "！", "dmg");
+        addLog(
+          e.name + "が虚空の髪を払う！ 妖力−" + yDmg + "（残り" + p.youriki + "/" + p.maxYouriki + "）！",
+          "dmg"
+        );
         continue;
       }
       // 魂櫛は巣穴にのみ存在。フィールドでは服装のみ被弾。
@@ -6685,10 +6710,7 @@ html, body {
       }
     }
 
-    // 通常戦闘のみ、ターン終了時に妖力を少し回復（遠隔髪はログと表示がズレるので除外）
-    if (!remoteHair) {
-      p.youriki = clamp(p.youriki + 4, 0, p.maxYouriki);
-    }
+    // 戦闘中の隠し妖力回復はやめる（ログとHUDのズレの原因だった）
 
     // フィールド戦闘中：奇襲の発生／タイマー進行（遠隔髪・巣防衛は除外）
     if (!defendingNest && !remoteHair) {
@@ -6744,6 +6766,8 @@ html, body {
     }
 
     combat.turn = "player";
+    combat.targetSelectLogged = false;
+    combat.selectedSkill = null;
     addLog("—— 結羅のターン ——", "sys");
     renderCombat();
   }
@@ -6779,6 +6803,7 @@ html, body {
     $("#btn-continue").onclick = continueGame;
     $("#btn-save").onclick = () => saveGame();
     $("#btn-title").onclick = () => {
+      hideToast();
       $("#modal-title").textContent = "タイトルに戻る？";
       $("#modal-body").textContent = "セーブしていない進捗は失われます。";
       $("#modal-btns").innerHTML = "";
