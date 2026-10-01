@@ -989,7 +989,7 @@ html, body {
   // EXP is kept as progress toward the next level. A level's threshold is
   // level * 100, so the thresholds become 100, 200, 300, ... .
   const EXP_PER_LEVEL = 100;
-  const MIN_NEST_RAID_LEVEL = 6;
+  const MIN_NEST_RAID_LEVEL = 12; // was 6: early/mid map safe from nest raids
   const MAX_COMB = 300; // 魂櫛 HP
   const NEST_DEFENSE_HUNTERS = 20;
   const LEVEL_CLOTHES_GROWTH = 10;
@@ -2903,7 +2903,7 @@ html, body {
   }
 
   function startNestRaid(reason) {
-    // Nest raids are locked until LV3, including all callers and old saves.
+    // Nest raids are locked until MIN_NEST_RAID_LEVEL, including all callers and old saves.
     if (!canTriggerNestRaid()) return;
     if (state.nestRaid) return;
     if (state.location === "nest" && !(combat && combat.nestDefense)) return;
@@ -2963,7 +2963,7 @@ html, body {
     );
   }
 
-  /** After a field battle win (away from nest): chance / every 2nd battle. */
+  /** After a field battle win (away from nest): rare / every 8th battle. */
   function maybeTriggerNestRaidAfterBattle() {
     if (!canTriggerNestRaid()) return;
     if (state.nestRaid) return;
@@ -2971,8 +2971,8 @@ html, body {
     if (!state.flags.nestAwake || !state.flags.hairGathered) return;
     const won = state.flags.battlesWon || 0;
     if (won < 1) return;
-    // 2戦ごと保証、それ以外は約40%
-    if (won % 2 === 0 || Math.random() < 0.4) {
+    // 強く抑制: 8戦ごと保証、それ以外は約8%（旧: 2戦ごと保証＋約40%）
+    if (won % 8 === 0 || Math.random() < 0.08) {
       startNestRaid(won + "戦目のあと");
     }
   }
@@ -2985,7 +2985,8 @@ html, body {
     if (state.location === "nest") return;
     if (!state.flags.nestAwake || !state.flags.hairGathered) return;
     if ((state.flags.battlesWon || 0) < 1) return;
-    if (Math.random() < 0.14) {
+    // 強く抑制: 敵ターン一巡あたり約2.5%（旧: 約14%）
+    if (Math.random() < 0.025) {
       startNestRaid("戦闘中の急報");
     }
   }
