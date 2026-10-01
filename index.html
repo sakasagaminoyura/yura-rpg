@@ -1245,6 +1245,8 @@ html, body {
         wellMet: false,
         wellChoice: null, // flee | trick | fight
         hillReady: false,
+        inuyashaSlain: false,
+        silverHairTaken: false,
         ending: null, // shards | path
         battlesWon: 0,
         gameDay: 1, // in-game day (rest / battle pace)
@@ -2510,17 +2512,24 @@ html, body {
       hill_finale: () => {
         state.flags.scene = Math.max(state.flags.scene, 7);
         const cameos = [];
+        if (state.flags.inuyashaSlain) {
+          cameos.push({
+            speaker: "結羅",
+            text: "犬夜叉の銀髪は、すでに妾の手にある。半妖も巫女も——踏み潰したわ。",
+            img: ASSETS.combat,
+          });
+        }
         if (state.flags.sesshomaruMet) {
           cameos.push({
             speaker: "結羅",
-            text: "殺生丸の侮蔑も、まだ耳に残っている。……あの犬には、いつか借りを返すわ。",
+            text: "殺生丸の侮蔑も、まだ耳に残っている。あの犬貴公子にも、いつか同じ礼をしてあげる。",
             img: ASSETS.dialogue,
           });
         }
         if (state.flags.narakuMet) {
           cameos.push({
             speaker: "結羅",
-            text: "奈落の影……巣を狙う言葉は忘れない。欠片の向こうに、あの男がいる。",
+            text: "奈落の影……巣を狙った言葉は忘れない。欠片の向こうで、あの男も梳いてあげるわ。",
             img: ASSETS.dramatic,
           });
         }
@@ -2528,7 +2537,7 @@ html, body {
           [
             {
               speaker: "結羅",
-              text: "決戦の丘……風が強いわ。髪が歌う。",
+              text: "決戦の丘……風が強いわ。髪が歌う。妾の勝利の歌よ。",
               img: ASSETS.dramatic,
             },
           ]
@@ -2536,12 +2545,12 @@ html, body {
             .concat([
               {
                 speaker: "結羅",
-                text: "四魂の玉の欠片を追い続ければ、もっと強くなれる。\nでも……この魂は、本当にそれだけが望みなの？",
+                text: "四魂の玉の欠片——すべて、妾のもの。迷いなどないわ。\n強さこそが正義。髪は世界を覆い尽くす。",
                 img: ASSETS.dialogue,
               },
               {
                 speaker: "結羅",
-                text: "魂櫛を握りしめ、私は決める——",
+                text: "魂櫛を握りしめ——行くわよ。次の獲物も、容赦はしない。",
                 img: ASSETS.dialogue,
                 choices: [
                   {
@@ -2549,7 +2558,7 @@ html, body {
                     gotoEnding: "shards",
                   },
                   {
-                    label: "別の道を探す（力だけではない生）",
+                    label: "別の狩場へ向かう（力の道を選ぶ）",
                     gotoEnding: "path",
                   },
                 ],
@@ -2881,17 +2890,49 @@ html, body {
     state.unlocked = Math.max(state.unlocked, 5);
     state.flags.hillReady = true;
     state.flags.scene = Math.max(state.flags.scene, 6);
-    state.player.youriki = clamp(state.player.youriki + 25, 0, state.player.maxYouriki);
+    state.flags.inuyashaSlain = true;
+    state.flags.silverHairTaken = true;
+    state.player.youriki = clamp(state.player.youriki + 40, 0, state.player.maxYouriki);
     maybeTriggerNestRaidAfterBattle();
     startStory([
       {
         speaker: "犬夜叉",
-        text: "くっ……やるじゃねぇか、髪鬼！",
+        text: "ぐあっ……こ、こんな……髪ごときに……！",
+        img: ASSETS.status,
+      },
+      {
+        speaker: "かごめ",
+        text: "犬夜叉！？　やめて——！　お願い、もう——！",
         img: ASSETS.status,
       },
       {
         speaker: "結羅",
-        text: "あなたたち、面白い。でも今日はここまで。\n決戦の丘で、決着をつけましょう。",
+        text: "終わりよ。半妖も巫女も、妾の黒髪の前ではただの獲物。\n慈悲など、期待しないことね。",
+        img: ASSETS.combat,
+      },
+      {
+        speaker: "",
+        text: "紅霞が一閃——かごめの叫びごと、喉を貫く。\n続いて黒髪が鉄砕牙を握る腕を締め、犬夜叉の首を一気に引き寄せる。",
+        img: ASSETS.dramatic,
+      },
+      {
+        speaker: "結羅",
+        text: "ふふ……美しい首ね。半妖の血が、銀糸に染みていく。\n頂いたわ。あなたの頭も、その髪も——すべて妾のもの。",
+        img: ASSETS.combat,
+      },
+      {
+        speaker: "",
+        text: "刃が走り、犬夜叉の首が落ちる。結羅は転がる首を髪で抱き上げ、\n血に濡れてもなお輝く銀の髪を、指ごと梳き取る。",
+        img: ASSETS.dramatic,
+      },
+      {
+        speaker: "結羅",
+        text: "なんて美しい銀髪……。こんな極上の一房、見逃すわけがないわ。\n全部、いただくわ。妾のコレクションの最上席へ、ようこそ。",
+        img: ASSETS.dialogue,
+      },
+      {
+        speaker: "結羅",
+        text: "四魂の欠片への邪魔者は、消えた。\n次も、同じように——愛でるわよ。ふふっ。",
         img: ASSETS.dramatic,
       },
     ]);
@@ -2917,14 +2958,13 @@ html, body {
         "【END A：冷酷なる髪鬼】";
     } else {
       img.src = ASSETS.dialogue;
-      title.textContent = "結末二　——　櫛に宿る別の願い";
+      title.textContent = "結末二　——　狩場を選ぶ黒髪";
       body.textContent =
-        "結羅は魂櫛を見つめ、呟いた。\n" +
-        "「欠片がなくても……私は、私のまま」\n\n" +
-        "黒い髪は風に解け、巣穴には静かな時間が戻る。\n" +
-        "戦いは終わらないかもしれない。\n" +
-        "それでも彼女は、別の生を選び取った。\n\n" +
-        "【END B：別の道】";
+        "結羅は魂櫛を握り、笑った。\n" +
+        "「欠片は後でいい。まずは、もっと美しい髪を集めるわ」\n\n" +
+        "黒い髪は風に伸び、新たな狩場へ滑り出す。\n" +
+        "迷いなどない。妾は妾のまま、獲物を愛でる。\n\n" +
+        "【END B：新たな狩場】";
     }
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(state));
