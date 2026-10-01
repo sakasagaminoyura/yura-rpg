@@ -727,6 +727,13 @@ html, body {
 }
 .map-known { margin-bottom: 4px; }
 
+.hud-shards {
+  color: #f5d76e;
+  font-weight: 700;
+  font-size: 0.85em;
+  letter-spacing: 0.02em;
+}
+
 </style>
 </head>
 <body>
@@ -757,6 +764,7 @@ html, body {
           <div class="stat-row bar-clothes"><span class="stat-label">服装</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">100/100</span></div>
           <div class="stat-row bar-youriki"><span class="stat-label">妖力</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">60/100</span></div>
           <div class="stat-row bar-combat-stats"><span class="stat-label">能力</span><span class="hud-atk">攻撃 12</span><span class="hud-def">防御 4</span></div>
+          <div class="stat-row"><span class="stat-label">四魂</span><span class="hud-shards">欠片 0/12</span></div>
           <div class="stat-row bar-comb"><span class="stat-label">魂櫛</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">300/300</span></div>
           <div class="stat-row bar-exp"><span class="stat-label">EXP</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">0/100</span></div>
         </div>
@@ -784,6 +792,7 @@ html, body {
           <div class="stat-row bar-clothes"><span class="stat-label">服装</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">100/100</span></div>
           <div class="stat-row bar-youriki"><span class="stat-label">妖力</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">60/100</span></div>
           <div class="stat-row bar-combat-stats"><span class="stat-label">能力</span><span class="hud-atk">攻撃 12</span><span class="hud-def">防御 4</span></div>
+          <div class="stat-row"><span class="stat-label">四魂</span><span class="hud-shards">欠片 0/12</span></div>
           <div class="stat-row bar-comb"><span class="stat-label">魂櫛</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">300/300</span></div>
           <div class="stat-row bar-exp"><span class="stat-label">EXP</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">0/100</span></div>
         </div>
@@ -809,6 +818,7 @@ html, body {
           <div class="stat-row bar-clothes"><span class="stat-label">服装</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">100/100</span></div>
           <div class="stat-row bar-youriki"><span class="stat-label">妖力</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">60/100</span></div>
           <div class="stat-row bar-combat-stats"><span class="stat-label">能力</span><span class="hud-atk">攻撃 12</span><span class="hud-def">防御 4</span></div>
+          <div class="stat-row"><span class="stat-label">四魂</span><span class="hud-shards">欠片 0/12</span></div>
           <div class="stat-row bar-comb"><span class="stat-label">魂櫛</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">300/300</span></div>
           <div class="stat-row bar-exp"><span class="stat-label">EXP</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">0/100</span></div>
         </div>
@@ -833,6 +843,7 @@ html, body {
           <div class="stat-row bar-clothes"><span class="stat-label">服装</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">100/100</span></div>
           <div class="stat-row bar-youriki"><span class="stat-label">妖力</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">60/100</span></div>
           <div class="stat-row bar-combat-stats"><span class="stat-label">能力</span><span class="hud-atk">攻撃 12</span><span class="hud-def">防御 4</span></div>
+          <div class="stat-row"><span class="stat-label">四魂</span><span class="hud-shards">欠片 0/12</span></div>
           <div class="stat-row bar-comb"><span class="stat-label">魂櫛</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">300/300</span></div>
           <div class="stat-row bar-exp"><span class="stat-label">EXP</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">0/100</span></div>
         </div>
@@ -1141,6 +1152,195 @@ html, body {
       icon: "🕷️",
       isBoss: true,
     },
+    miroku: {
+      id: "miroku",
+      name: "弥勒",
+      hp: 115,
+      atk: 18,
+      def: 6,
+      icon: "📿",
+      isBoss: true,
+    },
+    sango: {
+      id: "sango",
+      name: "珊瑚",
+      hp: 130,
+      atk: 22,
+      def: 7,
+      icon: "🪃",
+      isBoss: true,
+    },
+    shippo: {
+      id: "shippo",
+      name: "七宝",
+      hp: 55,
+      atk: 12,
+      def: 3,
+      icon: "🦊",
+      isBoss: true,
+    },
+    kohaku: {
+      id: "kohaku",
+      name: "琥珀",
+      hp: 95,
+      atk: 17,
+      def: 5,
+      icon: "⛓️",
+      isBoss: true,
+    },
+    kagura: {
+      id: "kagura",
+      name: "神楽",
+      hp: 125,
+      atk: 23,
+      def: 6,
+      icon: "💨",
+      isBoss: true,
+    },
+    kanna: {
+      id: "kanna",
+      name: "神無",
+      hp: 100,
+      atk: 16,
+      def: 9,
+      icon: "🪞",
+      isBoss: true,
+    },
+    muonna: {
+      id: "muonna",
+      name: "無女",
+      hp: 90,
+      atk: 15,
+      def: 5,
+      icon: "👻",
+      isBoss: true,
+    },
+    hakudoshi: {
+      id: "hakudoshi",
+      name: "白童子",
+      hp: 160,
+      atk: 25,
+      def: 11,
+      icon: "👦",
+      isBoss: true,
+    },
+    bankotsu: {
+      id: "bankotsu",
+      name: "蛮骨",
+      hp: 180,
+      atk: 28,
+      def: 10,
+      icon: "⚔️",
+      isBoss: true,
+    },
+    renkotsu: {
+      id: "renkotsu",
+      name: "煉骨",
+      hp: 110,
+      atk: 20,
+      def: 6,
+      icon: "🔥",
+      isBoss: true,
+    },
+    jakotsu: {
+      id: "jakotsu",
+      name: "蛇骨",
+      hp: 105,
+      atk: 21,
+      def: 5,
+      icon: "🐍",
+      isBoss: true,
+    },
+    suikotsu: {
+      id: "suikotsu",
+      name: "睡骨",
+      hp: 120,
+      atk: 22,
+      def: 7,
+      icon: "💀",
+      isBoss: true,
+    },
+    ginkotsu: {
+      id: "ginkotsu",
+      name: "銀骨",
+      hp: 140,
+      atk: 24,
+      def: 12,
+      icon: "⚙️",
+      isBoss: true,
+    },
+    mukotsu: {
+      id: "mukotsu",
+      name: "霧骨",
+      hp: 85,
+      atk: 19,
+      def: 4,
+      icon: "☠️",
+      isBoss: true,
+    },
+    kyokotsu: {
+      id: "kyokotsu",
+      name: "凶骨",
+      hp: 200,
+      atk: 26,
+      def: 8,
+      icon: "👹",
+      isBoss: true,
+    },
+    kaede: {
+      id: "kaede",
+      name: "楓",
+      hp: 70,
+      atk: 14,
+      def: 5,
+      icon: "🍁",
+      isBoss: true,
+    },
+    tokajin: {
+      id: "tokajin",
+      name: "桃果人",
+      hp: 150,
+      atk: 21,
+      def: 14,
+      icon: "🍑",
+      isBoss: true,
+    },
+    rin: {
+      id: "rin",
+      name: "りん",
+      hp: 40,
+      atk: 4,
+      def: 1,
+      icon: "👧",
+      isBoss: true,
+    },
+    jaken: {
+      id: "jaken",
+      name: "邪見",
+      hp: 50,
+      atk: 14,
+      def: 3,
+      icon: "🔥",
+      isBoss: true,
+    },
+    myoga: {
+      id: "myoga",
+      name: "冥加",
+      hp: 25,
+      atk: 6,
+      def: 1,
+      icon: "🪲",
+      isBoss: true,
+    },
+    kirara: {
+      id: "kirara",
+      name: "雲母",
+      hp: 90,
+      atk: 18,
+      def: 6,
+      icon: "🐱",
+      isBoss: true,
+    },
   };
 
   // ---------- Locations ----------
@@ -1221,6 +1421,69 @@ html, body {
       info: "風の強い丘。特に用事はない。",
       unlock: 4,
     },
+    {
+      id: "slayer",
+      name: "退治屋の里",
+      info: "珊瑚と琥珀の気配。欠片を持つ退治屋の里。",
+      unlock: 3,
+      requireFlag: "forestCleared",
+    },
+    {
+      id: "monkpath",
+      name: "風穴の辻",
+      info: "弥勒・七宝が通る道。法力と狐火の気配。",
+      unlock: 3,
+      requireFlag: "wellMet",
+    },
+    {
+      id: "tomb",
+      name: "七人塚",
+      info: "蛮骨率いる七人隊の亡霊が蘇る塚。",
+      unlock: 4,
+      requireFlag: "narakuMet",
+    },
+    {
+      id: "windfield",
+      name: "風の原",
+      info: "神楽の風が吹き荒れる草原。",
+      unlock: 4,
+      requireFlag: "narakuMet",
+    },
+    {
+      id: "mirror",
+      name: "死鏡の沼",
+      info: "神無の死鏡が水に映る沼。",
+      unlock: 4,
+      requireFlag: "narakuMet",
+    },
+    {
+      id: "mother",
+      name: "母の幻影",
+      info: "無女が母の姿を借りる場所。",
+      unlock: 3,
+      requireFlag: "sesshomaruMet",
+    },
+    {
+      id: "whitepath",
+      name: "白霊の道",
+      info: "白童子の結界が漂う白い道。",
+      unlock: 4,
+      requireFlag: "narakuMet",
+    },
+    {
+      id: "orchard",
+      name: "桃果の園",
+      info: "桃果人が人面果を育てる崖の園。",
+      unlock: 2,
+      requireFlag: "villageCleared",
+    },
+    {
+      id: "kaede",
+      name: "楓の里",
+      info: "老巫女・楓が守る村。",
+      unlock: 3,
+      requireFlag: "wellMet",
+    },
   ];
 
   // ---------- State ----------
@@ -1240,14 +1503,29 @@ html, body {
         sesshomaruDuelDone: false,
         sesshomaruWon: false,
         kikyoMet: false,
+        kikyoSlain: false,
         kogaMet: false,
+        kogaSlain: false,
         narakuMet: false,
+        narakuSlain: false,
         wellMet: false,
         wellChoice: null, // fight (flee/trick removed — 結羅は逃げない)
         hillReady: false, // legacy (unused; hill finale removed)
         inuyashaSlain: false,
         silverHairTaken: false,
         shikonShardsTaken: false,
+        shikonShards: 0, // 四魂の玉の欠片所持数
+        shardHunt: false, // 犬夜叉討伐後の欠片狩り本編
+        sangoSlain: false,
+        mirokuSlain: false,
+        bankotsuSlain: false,
+        kaguraSlain: false,
+        kannaSlain: false,
+        muonnaSlain: false,
+        hakudoshiSlain: false,
+        tokajinSlain: false,
+        kaedeSlain: false,
+        rinSlain: false,
         ending: null, // shards | path
         battlesWon: 0,
         gameDay: 1, // in-game day (rest / battle pace)
@@ -1313,6 +1591,40 @@ html, body {
 
   function rand(a, b) {
     return a + Math.floor(Math.random() * (b - a + 1));
+  }
+
+
+  // ---------- 四魂の欠片（本編目標）----------
+  const SHARD_GOAL = 12;
+
+  function grantShards(n, label) {
+    const add = Math.max(0, n | 0);
+    if (!add) return;
+    state.flags.shikonShards = (state.flags.shikonShards || 0) + add;
+    state.flags.shikonShardsTaken = true;
+    const msg =
+      "四魂の玉の欠片×" +
+      add +
+      "を奪った！" +
+      (label ? "（" + label + "）" : "") +
+      " 合計 " +
+      state.flags.shikonShards +
+      "/" +
+      SHARD_GOAL;
+    toast(msg);
+    refreshAllHuds();
+  }
+
+  function shardCount() {
+    return state.flags.shikonShards || 0;
+  }
+
+  function maybeOfferShardEnding() {
+    if (state.flags.ending) return;
+    if (shardCount() < SHARD_GOAL) return;
+    if (!state.flags.shardHunt && !state.flags.inuyashaSlain) return;
+    // Available from nest menu; soft hint
+    toast("欠片が揃いつつある……巣で結末を選べるわ。");
   }
 
   // ---------- Save / Load ----------
@@ -1383,6 +1695,12 @@ html, body {
       // 序盤から狩りへ出られるよう、村はずれ・森は最低でも解放
       if ((state.unlocked || 0) < 3) state.unlocked = 3;
       if (state.flags.nestAwake && !state.flags.hairGathered) state.flags.hairGathered = true;
+      if (state.flags.shikonShards == null) {
+        state.flags.shikonShards = state.flags.shikonShardsTaken ? 2 : 0;
+      }
+      if (state.flags.shardHunt == null) {
+        state.flags.shardHunt = !!state.flags.inuyashaSlain;
+      }
       toast("ロードしました");
       return true;
     } catch (e) {
@@ -1435,6 +1753,11 @@ html, body {
         setBar(".bar-comb", 0, p.maxComb, "巣穴");
       }
     }
+    // 四魂の欠片
+    root.querySelectorAll(".hud-shards").forEach((el) => {
+      el.textContent = "欠片 " + (state.flags.shikonShards || 0) + "/" + SHARD_GOAL;
+    });
+
     // 巣の奇襲バナー
     let banner = root.querySelector(".raid-banner");
     if (state.nestRaid && state.nestRaid.turnsLeft > 0) {
@@ -1936,7 +2259,7 @@ html, body {
     // Village/story locations → return near them on overworld when possible
     const fieldStarts = [
       "village", "villageA", "villageB", "castle", "pass", "shrine",
-      "cliff", "shadow", "well", "hill",
+      "cliff", "shadow", "well", "hill", "slayer", "monkpath", "tomb", "windfield", "mirror", "mother", "whitepath", "orchard", "kaede",
     ];
     if (fieldStarts.indexOf(state.location) >= 0) {
       enterExplore("overworld", { from: state.location, skipWalkIntro: true });
@@ -1969,7 +2292,7 @@ html, body {
           },
           {
             speaker: "結羅",
-            text: "四魂の玉の欠片……あの力が欲しい。\nでも、四魂の欠片を集めてると噂の犬夜叉っていう半妖が邪魔ね。先に、犬夜叉を狩らないと……",
+            text: "四魂の玉の欠片……あの力が欲しい。\n邪魔な半妖を斬り、欠片を持つ者を狩り尽くす。誰も逃がさない——妾の黒髪の下で、全員死ぬのよ。",
             img: ASSETS.combat,
           },
         ]);
@@ -2218,43 +2541,29 @@ html, body {
           },
           {
             speaker: "結羅",
-            text: "雑魚、ですって？　黒い髪と紅霞を侮らないことね、犬の貴公子。",
+            text: "雑魚、ですって？　黒い髪と紅霞を侮らないことね、犬の貴公子。\n逃げ道はないわ。妾は、全員狩るのよ。",
             img: ASSETS.combat,
           },
           {
             speaker: "殺生丸",
-            text: "ふん。妾の弟——犬夜叉すら相手にならぬ。お前ごとき、瞬殺だ。\nだが……退屈凌ぎにはなるかもしれん。",
+            text: "ふん。退屈凌ぎにはなるかもしれん。立て。",
             img: ASSETS.status,
           },
           {
-            speaker: "殺生丸",
-            text: "立て。あるいは、尻尾を巻いて巣へ帰れ。どちらでもよい。",
-            img: ASSETS.status,
+            speaker: "",
+            text: "戦闘開始！",
+            img: ASSETS.combat,
             choices: [
               {
-                label: "挑む（殺生丸と決闘）",
+                label: "斬る（殺生丸を狩る）",
                 startCombat: {
-                  enemies: [makeEnemy(ENEMY_TMPL.sesshomaru)],
+                  enemies: [
+                    makeEnemy(ENEMY_TMPL.sesshomaru),
+                    makeEnemy(ENEMY_TMPL.jaken, "邪見"),
+                    makeEnemy(ENEMY_TMPL.rin, "りん"),
+                  ],
                   onWin: afterSesshomaruWin,
                 },
-              },
-              {
-                label: "今は退く",
-                effect: () => {
-                  state.unlocked = Math.max(state.unlocked, 4);
-                },
-                next: [
-                  {
-                    speaker: "結羅",
-                    text: "……賢い選択よ。また会いましょう、殺生丸。",
-                    img: ASSETS.dialogue,
-                  },
-                  {
-                    speaker: "殺生丸",
-                    text: "二度目はないと思え。雑魚は雑魚らしく消えろ。",
-                    img: ASSETS.status,
-                  },
-                ],
               },
             ],
           },
@@ -2267,23 +2576,18 @@ html, body {
             speaker: "殺生丸",
             text: "また来たか。死に急ぐか、髪鬼。",
             img: ASSETS.status,
+          },
+          {
+            speaker: "結羅",
+            text: "今度は逃がさないわ。頭も、欠片の気配も——頂くわ。",
+            img: ASSETS.combat,
             choices: [
               {
-                label: "決闘する",
+                label: "決闘する（殺す）",
                 startCombat: {
                   enemies: [makeEnemy(ENEMY_TMPL.sesshomaru)],
                   onWin: afterSesshomaruWin,
                 },
-              },
-              {
-                label: "やめておく",
-                next: [
-                  {
-                    speaker: "結羅",
-                    text: "今日のところは、見ておくだけにしておくわ。",
-                    img: ASSETS.dialogue,
-                  },
-                ],
               },
             ],
           },
@@ -2300,36 +2604,21 @@ html, body {
           },
           {
             speaker: "桔梗",
-            text: "髪鬼の結羅。あなたの力は巣の奥に深く根を張っている。ここを離れても、気配は隠せない。",
-            img: ASSETS.status,
-          },
-          {
-            speaker: "桔梗",
-            text: "私は死者。あなたもまた、生と死の狭間にいる。\n四魂の玉を追うなら——やがて奈落の手のひらで踊るだけよ。",
+            text: "髪鬼の結羅。四魂の玉を追う者は、やがて奈落の手のひらで踊る。",
             img: ASSETS.status,
           },
           {
             speaker: "結羅",
-            text: "忠告、感謝するわ。でも私の道は、自分で決める。",
-            img: ASSETS.dialogue,
+            text: "忠告は要らないわ。あなたの死魂も、欠片の光も——妾がいただく。",
+            img: ASSETS.combat,
+          },
+          {
+            speaker: "",
+            text: "戦闘開始！",
+            img: ASSETS.combat,
             choices: [
               {
-                label: "言葉を交わして去る",
-                next: [
-                  {
-                    speaker: "桔梗",
-                    text: "……ならば、矢は向けない。道を違えるがよい。",
-                    img: ASSETS.status,
-                  },
-                  {
-                    speaker: "結羅",
-                    text: "（霧が晴れる。聖なる気配だけが残った）",
-                    img: ASSETS.dramatic,
-                  },
-                ],
-              },
-              {
-                label: "力を試す（軽く戦う）",
+                label: "狩る（桔梗を仕留める）",
                 startCombat: {
                   enemies: [makeEnemy(ENEMY_TMPL.kikyo)],
                   onWin: afterKikyoWin,
@@ -2350,12 +2639,12 @@ html, body {
           },
           {
             speaker: "結羅",
-            text: "狼の妖怪……鋼牙ね。速さだけは自慢らしいわ。",
+            text: "狼の妖怪……鋼牙ね。足の欠片、いい香りがするわ。頂くわよ。",
             img: ASSETS.combat,
           },
           {
             speaker: "鋼牙",
-            text: "かごめは俺のもんだ！　邪魔する奴は叩き潰す！",
+            text: "欠片を狙うなら、五雷指で叩き潰す！",
             img: ASSETS.status,
           },
           {
@@ -2364,7 +2653,7 @@ html, body {
             img: ASSETS.combat,
             choices: [
               {
-                label: "戦う",
+                label: "戦う（鋼牙を狩る）",
                 startCombat: {
                   enemies: [
                     makeEnemy(ENEMY_TMPL.koga),
@@ -2394,45 +2683,291 @@ html, body {
             img: ASSETS.status,
           },
           {
-            speaker: "奈落",
-            text: "あなたも、駒の一つ。殺生丸も犬夜叉も——私の掌の上だ。",
-            img: ASSETS.status,
-          },
-          {
             speaker: "結羅",
-            text: "誰かの掌など、髪で縛り裂いてあげるわ。消えなさい、影。",
+            text: "あなたも獲物よ。分身ごと斬って、欠片は全部頂くわ。逃げ道はない。",
             img: ASSETS.combat,
           },
           {
             speaker: "奈落",
-            text: "いいだろう。姿は見せぬ。だが覚えておけ——\n巣を失えば、あなたの力も翳る。魂まで喰らうのは、それからだ。",
+            text: "いいだろう。姿は見せぬ——だが覚えておけ。巣を失えば、あなたの力も翳る。",
             img: ASSETS.status,
+          },
+          {
+            speaker: "",
+            text: "戦闘開始！",
+            img: ASSETS.combat,
             choices: [
               {
-                label: "影を追う（戦闘）",
+                label: "影を狩る（奈落を討つ）",
                 startCombat: {
                   enemies: [
-                    makeEnemy(ENEMY_TMPL.naraku, "奈落の分身"),
-                    makeEnemy(ENEMY_TMPL.stray, "虫の妖怪"),
+                    makeEnemy(ENEMY_TMPL.naraku),
+                    makeEnemy(ENEMY_TMPL.stray, "最猛勝の群れ"),
                     makeEnemy(ENEMY_TMPL.stray, "虫の妖怪"),
                   ],
                   onWin: afterNarakuWin,
                 },
               },
+            ],
+          },
+        ]);
+      },
+
+      slayer_intro: () => {
+        startStory([
+          {
+            speaker: "結羅",
+            text: "退治屋の里……飛来骨と鎖鎌の気配。欠片も混じっているわね。",
+            img: ASSETS.dramatic,
+          },
+          {
+            speaker: "珊瑚",
+            text: "髪鬼！　里を荒らしに来たのか！　琥珀、下がって！",
+            img: ASSETS.status,
+          },
+          {
+            speaker: "琥珀",
+            text: "姉上……俺も戦います。この欠片は、渡さない！",
+            img: ASSETS.status,
+          },
+          {
+            speaker: "結羅",
+            text: "姉も弟も、雲母も——首も髪も欠片も、まとめて頂戴。ふふっ。",
+            img: ASSETS.combat,
+            choices: [
               {
-                label: "今は見送る",
-                next: [
-                  {
-                    speaker: "結羅",
-                    text: "……逃がすわ。でも、巣は渡さない。",
-                    img: ASSETS.dialogue,
-                  },
-                  {
-                    speaker: "",
-                    text: "影が溶け、森に静寂が戻る。巣へ戻り、次の獲物を選ぶとしよう。",
-                    img: ASSETS.dramatic,
-                  },
-                ],
+                label: "里を狩る",
+                startCombat: {
+                  enemies: [
+                    makeEnemy(ENEMY_TMPL.sango),
+                    makeEnemy(ENEMY_TMPL.kohaku),
+                    makeEnemy(ENEMY_TMPL.kirara),
+                  ],
+                  onWin: afterSangoWin,
+                },
+              },
+            ],
+          },
+        ]);
+      },
+
+      monkpath_intro: () => {
+        startStory([
+          {
+            speaker: "弥勒",
+            text: "これは……強い妖気。髪を操る鬼、か。私の風穴で吸い込みましょう。",
+            img: ASSETS.status,
+          },
+          {
+            speaker: "七宝",
+            text: "おらも手伝うじゃ！　狐火じゃー！",
+            img: ASSETS.status,
+          },
+          {
+            speaker: "結羅",
+            text: "法師の風穴も、子狐の火も——黒髪の檻には勝てないわ。死になさい。",
+            img: ASSETS.combat,
+            choices: [
+              {
+                label: "狩る",
+                startCombat: {
+                  enemies: [
+                    makeEnemy(ENEMY_TMPL.miroku),
+                    makeEnemy(ENEMY_TMPL.shippo),
+                    makeEnemy(ENEMY_TMPL.myoga, "冥加"),
+                  ],
+                  onWin: afterMirokuWin,
+                },
+              },
+            ],
+          },
+        ]);
+      },
+
+      tomb_intro: () => {
+        startStory([
+          {
+            speaker: "蛮骨",
+            text: "ハッハッハ！　髪鬼か！　七人隊の蛮骨だ。欠片目当てなら、俺たちの首を賭けろ！",
+            img: ASSETS.status,
+          },
+          {
+            speaker: "結羅",
+            text: "亡霊の七人隊……首に欠片を埋めた死に損ないね。全部、いただくわ。",
+            img: ASSETS.combat,
+          },
+          {
+            speaker: "煉骨",
+            text: "大兄貴、油断するな。あの髪は厄介だ。",
+            img: ASSETS.status,
+          },
+          {
+            speaker: "",
+            text: "戦闘開始！",
+            img: ASSETS.combat,
+            choices: [
+              {
+                label: "七人隊を屠る",
+                startCombat: {
+                  enemies: [
+                    makeEnemy(ENEMY_TMPL.bankotsu),
+                    makeEnemy(ENEMY_TMPL.renkotsu),
+                    makeEnemy(ENEMY_TMPL.jakotsu),
+                    makeEnemy(ENEMY_TMPL.suikotsu),
+                  ],
+                  onWin: afterBankotsuWin,
+                },
+              },
+            ],
+          },
+        ]);
+      },
+
+      windfield_intro: () => {
+        startStory([
+          {
+            speaker: "神楽",
+            text: "あたしは風よ。奈落の分身だけど——自由になりたいの。あなた、邪魔。",
+            img: ASSETS.status,
+          },
+          {
+            speaker: "結羅",
+            text: "風も髪で縛れるわ。自由など、死んでから味わいなさい。",
+            img: ASSETS.combat,
+            choices: [
+              {
+                label: "風を狩る",
+                startCombat: {
+                  enemies: [makeEnemy(ENEMY_TMPL.kagura)],
+                  onWin: afterKaguraWin,
+                },
+              },
+            ],
+          },
+        ]);
+      },
+
+      mirror_intro: () => {
+        startStory([
+          {
+            speaker: "神無",
+            text: "……無。魂を写す。髪鬼の魂も、鏡に吸い込む。",
+            img: ASSETS.status,
+          },
+          {
+            speaker: "結羅",
+            text: "無の巫女……神無ね。鏡ごと砕いて、欠片を奪うわ。",
+            img: ASSETS.combat,
+            choices: [
+              {
+                label: "鏡を砕く",
+                startCombat: {
+                  enemies: [makeEnemy(ENEMY_TMPL.kanna)],
+                  onWin: afterKannaWin,
+                },
+              },
+            ],
+          },
+        ]);
+      },
+
+      mother_intro: () => {
+        startStory([
+          {
+            speaker: "無女",
+            text: "子を失った母の無念……あなたも、誰かを想うの？",
+            img: ASSETS.status,
+          },
+          {
+            speaker: "結羅",
+            text: "想いはしないわ。母の幻も、髪で裂いてあげる。消えなさい、無女。",
+            img: ASSETS.combat,
+            choices: [
+              {
+                label: "幻を狩る",
+                startCombat: {
+                  enemies: [makeEnemy(ENEMY_TMPL.muonna)],
+                  onWin: afterMuonnaWin,
+                },
+              },
+            ],
+          },
+        ]);
+      },
+
+      whitepath_intro: () => {
+        startStory([
+          {
+            speaker: "白童子",
+            text: "儂らこそ本物の奈落。髪鬼など、赤子の鎧の餌にもならぬ。",
+            img: ASSETS.status,
+          },
+          {
+            speaker: "結羅",
+            text: "童子の皮を被った影ね。結界ごと黒髪で締め上げて、欠片を奪うわ。",
+            img: ASSETS.combat,
+            choices: [
+              {
+                label: "白童子を狩る",
+                startCombat: {
+                  enemies: [
+                    makeEnemy(ENEMY_TMPL.hakudoshi),
+                    makeEnemy(ENEMY_TMPL.stray, "炎蹄"),
+                  ],
+                  onWin: afterHakudoshiWin,
+                },
+              },
+            ],
+          },
+        ]);
+      },
+
+      orchard_intro: () => {
+        startStory([
+          {
+            speaker: "桃果人",
+            text: "フッフッフ……人面果の肥料に、髪鬼もよかろう。仙術で動けなくしてやる！",
+            img: ASSETS.status,
+          },
+          {
+            speaker: "結羅",
+            text: "太った仙人まがいね。果も杖も、首も——頂くわ。",
+            img: ASSETS.combat,
+            choices: [
+              {
+                label: "園を狩る",
+                startCombat: {
+                  enemies: [makeEnemy(ENEMY_TMPL.tokajin)],
+                  onWin: afterTokajinWin,
+                },
+              },
+            ],
+          },
+        ]);
+      },
+
+      kaede_intro: () => {
+        startStory([
+          {
+            speaker: "楓",
+            text: "髪鬼か……桔梗の仇、犬夜叉の仇。儂の矢で、ここで止めるぞ。",
+            img: ASSETS.status,
+          },
+          {
+            speaker: "結羅",
+            text: "老いた巫女ね。里の守りも、あんたの首も——欠片の道標よ。死になさい。",
+            img: ASSETS.combat,
+            choices: [
+              {
+                label: "楓を狩る",
+                startCombat: {
+                  enemies: [
+                    makeEnemy(ENEMY_TMPL.kaede),
+                    makeEnemy(ENEMY_TMPL.villager, "里の戦士"),
+                    makeEnemy(ENEMY_TMPL.monk, "里の法師"),
+                  ],
+                  onWin: afterKaedeWin,
+                },
               },
             ],
           },
@@ -2693,87 +3228,242 @@ html, body {
     state.flags.sesshomaruDuelDone = true;
     state.flags.sesshomaruWon = true;
     state.flags.sesshomaruMet = true;
+    state.flags.rinSlain = true;
     state.flags.battlesWon++;
     state.unlocked = Math.max(state.unlocked, 5);
     state.player.youriki = clamp(state.player.youriki + 30, 0, state.player.maxYouriki);
     state.player.maxClothes += 10;
     state.player.clothes = clamp(state.player.clothes + 20, 0, state.player.maxClothes);
+    grantShards(1, "殺生丸一行");
     maybeTriggerNestRaidAfterBattle();
+    maybeOfferShardEnding();
     startStory([
       {
         speaker: "殺生丸",
-        text: "……ほう。髪鬼ごときが、この殺生丸に傷をつけたか。",
-        img: ASSETS.status,
-      },
-      {
-        speaker: "殺生丸",
-        text: "面白い。だが次はない。生きて巣へ帰れ——今日は見逃してやる。",
+        text: "……馬鹿な。この殺生丸が、髪鬼ごときに——",
         img: ASSETS.status,
       },
       {
         speaker: "結羅",
-        text: "侮蔑ごと、受け取っておくわ。また会いましょう、殺生丸。",
+        text: "貴公子の首も、邪見の頭も、りんの細い首も——コレクションに加わったわ。\n影の森への道が開くわね。欠片狩りは、まだ序章よ。",
         img: ASSETS.combat,
-      },
-      {
-        speaker: "",
-        text: "西の峠の决斗に勝った。影の森への道が開く気配がある。",
-        img: ASSETS.dramatic,
       },
     ]);
   }
 
   function afterKikyoWin() {
+    state.flags.kikyoSlain = true;
     state.flags.battlesWon++;
     state.player.youriki = clamp(state.player.youriki + 12, 0, state.player.maxYouriki);
+    grantShards(1, "桔梗");
     maybeTriggerNestRaidAfterBattle();
+    maybeOfferShardEnding();
     startStory([
       {
         speaker: "桔梗",
-        text: "……強い。だが力だけでは、魂は救われない。",
+        text: "……強い。だが力だけでは——魂は……救われ……ない……",
         img: ASSETS.status,
       },
       {
         speaker: "結羅",
-        text: "あなたの矢も、美しいわ。また霧の中で会いましょう。",
+        text: "死魂も矢も、霧ごと頂いたわ。次の欠片は、どこかしら。",
         img: ASSETS.dialogue,
       },
     ]);
   }
 
   function afterKogaWin() {
+    state.flags.kogaSlain = true;
     state.flags.battlesWon++;
     state.player.youriki = clamp(state.player.youriki + 18, 0, state.player.maxYouriki);
+    grantShards(1, "鋼牙の足");
     maybeTriggerNestRaidAfterBattle();
+    maybeOfferShardEnding();
     startStory([
       {
         speaker: "鋼牙",
-        text: "くっ……速いっつのに、髪が絡みやがる！　覚えとけよ、髪鬼！",
+        text: "くっ……足の欠片を……やるもんか……！",
         img: ASSETS.status,
       },
       {
         speaker: "結羅",
-        text: "狼の牙より、黒髪の方が長いのよ。ふふ。",
+        text: "狼の牙より、黒髪の方が長いのよ。欠片、ありがたくいただくわ。",
         img: ASSETS.combat,
       },
     ]);
   }
 
   function afterNarakuWin() {
+    state.flags.narakuSlain = true;
     state.flags.battlesWon++;
     state.unlocked = Math.max(state.unlocked, 5);
     state.player.youriki = clamp(state.player.youriki + 20, 0, state.player.maxYouriki);
+    grantShards(2, "奈落");
     maybeTriggerNestRaidAfterBattle();
+    maybeOfferShardEnding();
     startStory([
       {
         speaker: "奈落",
-        text: "（分身が崩れる）ふふ……本体は、もっと奥にいる。楽しませてくれるな。",
+        text: "……ほう。本体すら、この程度か。ふふ……面白い。",
         img: ASSETS.status,
       },
       {
         speaker: "結羅",
-        text: "影遊びは終わりよ。続きは——巣を守りながら、また別の日に。",
+        text: "影も本体も、髪で裂いたわ。欠片は妾のもの。七人塚も、風の原も——次へ行くわよ。",
         img: ASSETS.dramatic,
+      },
+    ]);
+  }
+
+  function afterSangoWin() {
+    state.flags.sangoSlain = true;
+    state.flags.battlesWon++;
+    grantShards(1, "珊瑚・琥珀");
+    state.player.youriki = clamp(state.player.youriki + 16, 0, state.player.maxYouriki);
+    maybeTriggerNestRaidAfterBattle();
+    maybeOfferShardEnding();
+    startStory([
+      {
+        speaker: "結羅",
+        text: "飛来骨も鎖鎌も、黒髪の檻の中よ。里の欠片、いただいたわ。",
+        img: ASSETS.combat,
+      },
+    ]);
+  }
+
+  function afterMirokuWin() {
+    state.flags.mirokuSlain = true;
+    state.flags.battlesWon++;
+    grantShards(1, "弥勒一行");
+    state.player.youriki = clamp(state.player.youriki + 14, 0, state.player.maxYouriki);
+    maybeTriggerNestRaidAfterBattle();
+    maybeOfferShardEnding();
+    startStory([
+      {
+        speaker: "結羅",
+        text: "風穴も狐火も、冥加の逃げ足も——全部、髪で止めたわ。次の獲物へ。",
+        img: ASSETS.combat,
+      },
+    ]);
+  }
+
+  function afterBankotsuWin() {
+    state.flags.bankotsuSlain = true;
+    state.flags.battlesWon++;
+    grantShards(2, "七人隊");
+    state.player.youriki = clamp(state.player.youriki + 22, 0, state.player.maxYouriki);
+    maybeTriggerNestRaidAfterBattle();
+    maybeOfferShardEnding();
+    startStory([
+      {
+        speaker: "蛮骨",
+        text: "大兄貴が……こんな……ハッ、悪くねえ死に方だ……",
+        img: ASSETS.status,
+      },
+      {
+        speaker: "結羅",
+        text: "首のかけら、七つ分——まとめて頂いたわ。亡霊は骨に戻りなさい。",
+        img: ASSETS.combat,
+      },
+    ]);
+  }
+
+  function afterKaguraWin() {
+    state.flags.kaguraSlain = true;
+    state.flags.battlesWon++;
+    grantShards(1, "神楽");
+    maybeTriggerNestRaidAfterBattle();
+    maybeOfferShardEnding();
+    startStory([
+      {
+        speaker: "神楽",
+        text: "風に……なりたかっ……た……のに……",
+        img: ASSETS.status,
+      },
+      {
+        speaker: "結羅",
+        text: "扇も羽根も、黒髪のコレクションよ。ふふ。",
+        img: ASSETS.combat,
+      },
+    ]);
+  }
+
+  function afterKannaWin() {
+    state.flags.kannaSlain = true;
+    state.flags.battlesWon++;
+    grantShards(1, "神無");
+    maybeTriggerNestRaidAfterBattle();
+    maybeOfferShardEnding();
+    startStory([
+      {
+        speaker: "結羅",
+        text: "死鏡は砕けた。無の巫女も、妾の髪の下よ。",
+        img: ASSETS.combat,
+      },
+    ]);
+  }
+
+  function afterMuonnaWin() {
+    state.flags.muonnaSlain = true;
+    state.flags.battlesWon++;
+    grantShards(1, "無女");
+    maybeTriggerNestRaidAfterBattle();
+    maybeOfferShardEnding();
+    startStory([
+      {
+        speaker: "結羅",
+        text: "母の幻など、髪で裂けるわ。次の欠片へ。",
+        img: ASSETS.combat,
+      },
+    ]);
+  }
+
+  function afterHakudoshiWin() {
+    state.flags.hakudoshiSlain = true;
+    state.flags.battlesWon++;
+    grantShards(1, "白童子");
+    maybeTriggerNestRaidAfterBattle();
+    maybeOfferShardEnding();
+    startStory([
+      {
+        speaker: "白童子",
+        text: "儂が……本物の……奈落……だと……",
+        img: ASSETS.status,
+      },
+      {
+        speaker: "結羅",
+        text: "童子の皮も、結界も終わりよ。欠片は巣へ持ち帰るわ。",
+        img: ASSETS.combat,
+      },
+    ]);
+  }
+
+  function afterTokajinWin() {
+    state.flags.tokajinSlain = true;
+    state.flags.battlesWon++;
+    grantShards(1, "桃果人");
+    maybeTriggerNestRaidAfterBattle();
+    maybeOfferShardEnding();
+    startStory([
+      {
+        speaker: "結羅",
+        text: "人面果の園は焼け落ちた。仙人まがいの首も、頂戴したわ。",
+        img: ASSETS.combat,
+      },
+    ]);
+  }
+
+  function afterKaedeWin() {
+    state.flags.kaedeSlain = true;
+    state.flags.battlesWon++;
+    grantShards(1, "楓の里");
+    maybeTriggerNestRaidAfterBattle();
+    maybeOfferShardEnding();
+    startStory([
+      {
+        speaker: "結羅",
+        text: "老巫女の里も沈黙よ。犬夜叉の残党は、残らず狩る——それが妾の道。",
+        img: ASSETS.combat,
       },
     ]);
   }
@@ -2785,7 +3475,9 @@ html, body {
     state.flags.inuyashaSlain = true;
     state.flags.silverHairTaken = true;
     state.flags.shikonShardsTaken = true;
+    state.flags.shardHunt = true;
     state.player.youriki = clamp(state.player.youriki + 40, 0, state.player.maxYouriki);
+    grantShards(2, "犬夜叉・かごめ");
     maybeTriggerNestRaidAfterBattle();
     startStory([
       {
@@ -2835,7 +3527,7 @@ html, body {
       },
       {
         speaker: "結羅",
-        text: "銀髪も、首も、欠片も——すべて手に入れた。\n邪魔者は消えたわ。巣へ戻るわよ。ふふっ。",
+        text: "銀髪も、首も、欠片も——手に入れた。でも、まだ足りないわ。\nこの世の欠片持ちは、まだいる。殺生丸も、桔梗も、鋼牙も、奈落も——\n珊瑚も弥勒も、七人隊も、神楽も神無も。名前のある獲物は、残らず狩る。\n逃げる選択肢などない。妾は、勝ち続けるだけよ。",
         img: ASSETS.dramatic,
       },
     ]);
@@ -2853,12 +3545,14 @@ html, body {
       img.src = ASSETS.combat;
       title.textContent = "結末一　——　欲望の黒髪";
       body.textContent =
-        "結羅は四魂の玉の欠片を追い求め続けた。\n" +
+        "結羅は名前有りの獲物を狩り尽くし、四魂の玉の欠片を" +
+        SHARD_GOAL +
+        "まで集めた。\n" +
         "髪は世界を覆い、魂櫛は血のように赤く輝く。\n\n" +
-        "「力こそが正義。欠片は、すべて私のもの」\n\n" +
+        "「力こそが正義。欠片は、すべて妾のもの。逃した猎物など、いないわ」\n\n" +
         "彼女の巣は永遠に広がり、\n" +
         "人々は黒い髪に縛られる夢を見る——\n\n" +
-        "【END A：冷酷なる髪鬼】";
+        "【END A：冷酷なる髪鬼・欠片完成】";
     } else {
       img.src = ASSETS.dialogue;
       title.textContent = "結末二　——　狩場を選ぶ黒髪";
@@ -3243,6 +3937,15 @@ html, body {
     W: { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAABs0lEQVR42u1YLXiDMBAN+VDo6ulqNGoC0wo0qmJ+ZrqiamIT8xNTaERrEFNoNHp6GtspupAWepdcIHzkXD4S8t79wLtjzJmzZZunevArCs+UQHZlpYSFLyYCb+G64/FVEJAC+W2azvqlqkHYfKoLp7LZp9ByaqC1p/i/Fj6L2qMAofPO2UfAN/ny4/H74tnt9tFzNTBmBNLo4Zy97rrr8sezmsDh8HFJmbp4H3y+3z971hAQgWHP6BLhU4CnPM+nvNzKIs7yE2OMsTDof5YmG/sItOBaq5r13b0URLgJ8KIFYYo6h01L3wR4GbS4bqrs6ny0GikCEO8MeRzyHBsFTul9CDjMvlG1EBYUFQljYi5Oonl3ZEVe2tWRyYUl5j8kHeIkuklK/CrJ/wWITkIJKV0S1OBHaWhM14JxAqZrgYyA/Iel3m+EgJy3UFDyPh1RhyIAKax7JCAkMV2atphLk82VpBBBBmE6CFpXUiv1o7fE1pCkxoDH9sjKDXWfYoQQ6fO6SoOvNRGAyN4sP4HSRHU6oT2boWjsdUYrfMrLKc6Tjvow0aCazBk3G2ZHzpw5s9j+AC9xuqvR+uirAAAAAElFTkSuQmCC" },
     H: { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAAAwCAYAAACG5f33AAABJklEQVR42u3ZLRLCQAwF4N03VegaToLZ4+CxaG6A5xjVqBpugKjHVGPLBTql0P3JJi+KmQ6zyTdJpizOCY4hhGkIYZKcIxyDgAQkYPzouvs095mAyqKRnNzzfOEIcwcyCEhAAhKQQUAC8kV6KY7X5Wuruee3U+/NA36DW/PdkpBNjXCSIJua4SRAQgteiXOcc85LKyi8xsXn/b796ezU3QhN3VDifGjGy5GH146XepxhBS9VXrCClyo/WMJLkSes4cXOF7XhvR+tKMTqrrN2h1FUPrA2urHzh2W8GHUg96Exd5gExOw7UNoOK7IDJY5ujM7+py6vAa/kb2ZI7ISawrP7tnUhrOGtnZC19Zr7Yz32WwA4utvqBvGMXSYQkIAMAhKQgGriA1y5hP14sAezAAAAAElFTkSuQmCC" },
     M: { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAgCAYAAABU1PscAAAAr0lEQVR42mNgGAUDCxjRBSpCNf4PZgd3rL6B4mamoR4Dox4YaMBCbQNjovjxyi9Z9pG2Hnjz8TdWhXN23WUkzgPm/0nJhLhAipvy/9EkRA7QCTzJOKg9YFNhRNN64kjHOZICYLQYJRVo2IgMbQ/cOPJmcHmA2iFKdw9QO0QHTRKiV8wwDZW0PuiKUWrF0IB5gFoxxDRU0z7NPEDvUmm0KTHqgVEPjHpgFIyCUTCQAADNaCZTOZ6XDQAAAABJRU5ErkJggg==" },
+    T: { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAABWUlEQVR42mNgGAUDCxhhDA05kTvEaLjx6I3KYPIA01CPAaweuL4qRRkffzQGRvMAETEASzaDOfkM/1KI1NA/4abx/4Sbxv8hGQPoDrfYdYNxyJRC2EKdXjHBSAvH0zMmmGjpeHrEBBMtHU8PTzDR2vG09gQTPR1CC08w0dsB1PYE40BnQkpLqeHZHxj1wEC0hQiBLQsqqJoXfBI6GEdjgJQYuLRvGtVi4NGkSeTF2gbMEmvIxwALuRqXfXND4Udx7aJI3YjNAyzUMqijpANDrKKnYuh4gBQgl5fH8ObjN5L0OAWWMFLVA8hpGVvo0yrNj+YBWoE5zah1Q0pt3giPgRQ6D1DhrG+mz0Fxzxy0/sNoc3rUA/QqhfScskhuvy9zysIpt299z//RGMDXH0AvhY68+ZY6EA60EeGajVJfDLdSCGcMaBjJpQwmh94492jOsMwDo2AUjHQAABWlfctXyPc+AAAAAElFTkSuQmCC" },
+    G: { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAwCAYAAABwrHhvAAAAw0lEQVR42mNgGOmA8c7D1/9J0aAiL8qIT55U85gGOgRGHcCSlZVPlMJdW5cxMjAwMCyo0PjPwMDAkNBxAyUtwMRhacTNO+r/0AgBUhT3VAT8Z2C4gcRGBgjxko4NjKOJcOjkAhEREZoYTKy5QysXMDAwMLxh0CBJfPgmQhs3kYF1wJFdb0bLgVEHjDpgcDiA0vKAYgdQWh6MpoFRB4w6gGkgywCKHUCNNsFoGhh1wKgDqOIASsoDqjiAkvJgNA2MglEAAO0JLNSYyyvTAAAAAElFTkSuQmCC" },
+    E: { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAwCAYAAAChS3wfAAACYklEQVR42u2ZoXLDMAyGbV1RychISLDxRku2Jwju3mAgTzJUMDzS4T3BRkY3bBwSMjJS2qGsqc9xpUhyctf6rnfrrbH1Sb9k2bEmw1i59X7ss5/+1WraZucKnssRMDV80/rszlRXQMpYDHBZuGxKAGnYIfim9ehop34rrQSbI6ex4BQ1SCkBsOBTwGOe5yrCahYfLjy2LnAUYrnwTeujxk0JT3GEpcLHwDQdwIHHOAGw8NQqngses1ZKyRYLTzFUwgFD8Jw+IqYEyBVNLrxEHxELLuRoNyXgpXahkBG40deQf84+AqQN5FRtiYpP7WhhCknnbqRS8yxyQGunichZICwOWkZWrjZl4bLJHe2AcI/UMvDNb0hraDsKtHMc20TF5un/r/vUd88idaBTvE3tkdQOEPOcZEQpaRqu2ykeJCPftN5Urjbv269Rtz1TbJsgtUAHtfl4NPcPt2LRG6vCUQ7AXiJoFqbK1eblaXuklO7vIWdw7AEJWMkt85SCxqyVYgDMkVEj4pxDD/ZSBnNBAthzs3bzQo0s9venbAbqNdJQW7u8OnzmMmLwIRdgpTL1CY4KjoFHFUGNl5Jl4UzlapScU8qKHcWpL1JE3gw1rT8ycPdLl+eQE1LzYtVHvhVOTZRrl5AapxQMGpPOBRxj52IuBpeFYx1uxgYGtKRFrdCUVJKCZ98HpHqFPmj4nbOtStcbkVxeufX+Z3eQ7/VSzkjMvJyaBFIFR7NQaRZk9WtxDDjHgbNIAWOMceXNf5Pkm2/bTw+KoWGzFUsByW1Y3QFznXfSFJjTOHsHXMZlXMZ5jz98kIFi+GgBnwAAAABJRU5ErkJggg==" },
+    K: { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAAAwCAYAAACG5f33AAABJklEQVR42u3ZLRLCQAwF4N03VegaToLZ4+CxaG6A5xjVqBpugKjHVGPLBTql0P3JJi+KmQ6zyTdJpizOCY4hhGkIYZKcIxyDgAQkYPzouvs095mAyqKRnNzzfOEIcwcyCEhAAhKQQUAC8kV6KY7X5Wuruee3U+/NA36DW/PdkpBNjXCSIJua4SRAQgteiXOcc85LKyi8xsXn/b796ezU3QhN3VDifGjGy5GH146XepxhBS9VXrCClyo/WMJLkSes4cXOF7XhvR+tKMTqrrN2h1FUPrA2urHzh2W8GHUg96Exd5gExOw7UNoOK7IDJY5ujM7+py6vAa/kb2ZI7ISawrP7tnUhrOGtnZC19Zr7Yz32WwA4utvqBvGMXSYQkIAMAhKQgGriA1y5hP14sAezAAAAAElFTkSuQmCC" },
+    J: { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAABs0lEQVR42u1YLXiDMBAN+VDo6ulqNGoC0wo0qmJ+ZrqiamIT8xNTaERrEFNoNHp6GtspupAWepdcIHzkXD4S8t79wLtjzJmzZZunevArCs+UQHZlpYSFLyYCb+G64/FVEJAC+W2azvqlqkHYfKoLp7LZp9ByaqC1p/i/Fj6L2qMAofPO2UfAN/ny4/H74tnt9tFzNTBmBNLo4Zy97rrr8sezmsDh8HFJmbp4H3y+3z971hAQgWHP6BLhU4CnPM+nvNzKIs7yE2OMsTDof5YmG/sItOBaq5r13b0URLgJ8KIFYYo6h01L3wR4GbS4bqrs6ny0GikCEO8MeRzyHBsFTul9CDjMvlG1EBYUFQljYi5Oonl3ZEVe2tWRyYUl5j8kHeIkuklK/CrJ/wWITkIJKV0S1OBHaWhM14JxAqZrgYyA/Iel3m+EgJy3UFDyPh1RhyIAKax7JCAkMV2atphLk82VpBBBBmE6CFpXUiv1o7fE1pCkxoDH9sjKDXWfYoQQ6fO6SoOvNRGAyN4sP4HSRHU6oT2boWjsdUYrfMrLKc6Tjvow0aCazBk3G2ZHzpw5s9j+AC9xuqvR+uirAAAAAElFTkSuQmCC" },
+    U: { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAA9UlEQVR42u2WLRLCMBSEN0wPUBHFCYJBoLgDFRwCxQmqEKieAMUhEOUOKASGnAAVUYUNBgRM0zIl/aHdz5HpvHnfZDcDQAghbSLKPlhJadtccG9M4Y6j3t5AqpQFgIMxrS64lBIAEGmdu2vw7YCu8vcR6m8HXJ144cpkVarOH16EFtdT7rm1mfVx7prvTeA4mednUYTCx7lrvovAV2b5Cg1VoHKE6n5GaxdQaua5A3d2gAIUaLLEWp8FAGS3y09lDsdT8XwVLCNEAQo0WOIy1lH09nuXprwBClCAAhSgAAU+Eb4HxvG28G9xkmwEb4ACFKAA6QwP4xs9Ga3/3UMAAAAASUVORK5CYII=" },
+    Y: { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAwCAYAAABwrHhvAAAAw0lEQVR42mNgGOmA8c7D1/9J0aAiL8qIT55U85gGOgRGHcCSlZVPlMJdW5cxMjAwMCyo0PjPwMDAkNBxAyUtwMRhacTNO+r/0AgBUhT3VAT8Z2C4gcRGBgjxko4NjKOJcOjkAhEREZoYTKy5QysXMDAwMLxh0CBJfPgmQhs3kYF1wJFdb0bLgVEHjDpgcDiA0vKAYgdQWh6MpoFRB4w6gGkgywCKHUCNNsFoGhh1wKgDqOIASsoDqjiAkvJgNA2MglEAAO0JLNSYyyvTAAAAAElFTkSuQmCC" },
+    O: { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAClElEQVR42u2YwUrDMBjHk7Ax6KUwxqAgRRBkCAMZA9/Ayy5evHjWg2/gI/gO+gZevOziG3jZZSBDGIgIBSnKEAqjsHpKjDVJvy9rOpV+UChtmv7/X35fkpaQOv557JwOMpf9000Inl9P6K8zYJPpMoywTWJSBl7MlXg/9CoxQcsUbxK9eE6c4MSqEA+5bzsSpdQAFBdoO+cIYbOPQSmJv+5HtzNayQi4iuColwVHvcypASwWNhiZTIARCk/6opOm1yRVIJQPFVIUI1wlvmwDWBMMI97VTLJO/wwivtPzxWGbVUw7TD0UFrFONFZcGeJV0YCigzXhh5616GDQIdEkdrcSQzi1Ec/7hYovNADFZxMLHMhAPFtUtq/B9CdPpQzK/+v9qzMTcj8cn1YTRjc1FfFqsdQ+2D3oljLD+KEHEr1MV8oRUM5CsvDuQVeZfX6N+S3tCt2fROJ8OgiUK24SJ9+Et/tt8jZ9+9GWt5GNKA1sjXazfIb5ucrIarEkzG+RNEm1RkxbBS6s3W9/M0EIMRoxFrEsHnJdjjRJxaHKtmqfI4uHXNca4NnHhqlWTAEt1HxsH+9lWoSKsqyrCTEBeM2xmIYl7nf4x3ucjDBZ1tWEFiGTOMh9bJjEQe6zdfHBYnQehuQ8DK3xyWMkenkZP9KiLJuyz/wWOe0EYAFPNw+0KMum7PPnmQkVLlg+10Ve/MXV4QiLEhcsn6+9G7Vl/vLsbuyiJowGZIwwAXlONSIyRpiQn6vsv5DtiKARUmVzGH2IA5v9olpQjcL+/F0cRe0bJiRMUysUN0jmuSh5hYXi1oCwPRwEGVT4odcZ2eLARe5L7yuqk1/9b9TZR31twPV/oXzcTiJapSjM+2qEagN1/PH4BDAFV7EKEG21AAAAAElFTkSuQmCC" },
+    Q: { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAABY0lEQVR42mNgGAUDCxhhDA05kTvEaLjx6I3KYPIA01CPgeHtgev7ApSHtAc0nTbcHbIegIX+YI+F4ZkHru8LUIYlH02nDXeJjYUtUUb/t0QZ/R+S9QC6w32WnWMcMkkIW6jTKyYYaeF4esYEEy0dT4+YYKKl4+nhCSZaO57WnmCip0No4QkmejuA2p5gHOhMSGkpNdofGPUAvWriVbObqJoXwlLrGEdjgJQYOLFzAdVi4MbqSWTpS5iDWWIN+RhgIVfjht82KPwA1iMUqRuxeYCFWgZNqqzDEMtrbxo6HiAFaITmMbz5+I20JkdYFiNVPYCclrGFPq3S/GgeoBVY1tGBwo+qqBjhMZDipvF/MDhww5xJKO6Zs+sG42hzetQDA1EKWbgnkNx+X+aegLuvvWra/9EYwNcfQC+Fjrz5ljoQDrQR4ZqNzB92pRDOGNAwkksZTA69ce7RnGGZB0bBKBjpAAC7d3wyK/cu1gAAAABJRU5ErkJggg==" },
   };
 
   let landmarkImgCache = null; // ch -> HTMLImageElement
@@ -3381,6 +4084,15 @@ html, body {
       D: [24, 30, "shadow"],
       W: [34, 22, "well"],
       H: [42, 32, "hill"],
+      T: [16, 26, "village"], // 退治屋の里
+      G: [30, 14, "pass"], // 風穴の辻
+      E: [36, 30, "shadow"], // 七人塚
+      K: [6, 14, "hill"], // 風の原
+      J: [18, 10, "well"], // 死鏡の沼
+      U: [44, 14, "shrine"], // 母の幻影
+      Y: [32, 28, "pass"], // 白霊の道
+      O: [4, 26, "forest"], // 桃果の園
+      Q: [36, 8, "village"], // 楓の里
     };
     carvePath(tiles, 5, 4, 12, 8, ".");
     carvePath(tiles, 12, 8, 28, 7, ".");
@@ -3395,6 +4107,15 @@ html, body {
     carvePath(tiles, 22, 16, 24, 30, ".");
     carvePath(tiles, 34, 22, 42, 32, ".");
     carvePath(tiles, 10, 30, 24, 30, ".");
+    carvePath(tiles, 8, 22, 16, 26, ".");
+    carvePath(tiles, 22, 16, 30, 14, ".");
+    carvePath(tiles, 24, 30, 36, 30, ".");
+    carvePath(tiles, 5, 4, 6, 14, ".");
+    carvePath(tiles, 12, 8, 18, 10, ".");
+    carvePath(tiles, 42, 5, 44, 14, ".");
+    carvePath(tiles, 34, 22, 32, 28, ".");
+    carvePath(tiles, 8, 22, 4, 26, ".");
+    carvePath(tiles, 28, 7, 36, 8, ".");
     // expand nest clearing for the hair-ball circle
     fillRectTiles(tiles, 2, 2, 9, 8, ".");
     const landmarks = [];
@@ -3426,6 +4147,15 @@ html, body {
         shadow: [24, 28],
         well: [32, 22],
         hill: [42, 30],
+        slayer: [16, 24],
+        monkpath: [30, 16],
+        tomb: [36, 28],
+        windfield: [6, 16],
+        mirror: [18, 12],
+        mother: [42, 14],
+        whitepath: [32, 26],
+        orchard: [4, 24],
+        kaede: [36, 10],
         map: [22, 19],
         overworld: [5, 7],
       },
@@ -3771,6 +4501,15 @@ html, body {
       S: mk(pathBg, "#e74c3c", "torii"),
       D: mk(pathBg, "#9b59b6", "shadow"),
       W: mk(pathBg, "#3498db", "well"),
+      T: mk(pathBg, "#c0392b", "house"),
+      G: mk(pathBg, "#8e44ad", "spark"),
+      E: mk(pathBg, "#2c3e50", "shadow"),
+      K: mk(pathBg, "#1abc9c", "sword"),
+      J: mk(pathBg, "#a29bfe", "well"),
+      U: mk(pathBg, "#fd79a8", "torii"),
+      Y: mk(pathBg, "#ecf0f1", "spark"),
+      O: mk(pathBg, "#e17055", "forest"),
+      Q: mk(pathBg, "#f39c12", "house"),
       X: mk(nestBg, "#d4af37", "door"),
       star: mk(nestBg, "#f39c12", "menu"),
     };
@@ -4506,6 +5245,51 @@ html, body {
         setExploreMsg("影の森……殺生丸と会ってからの方がいい。");
         return false;
       }
+      if (tile === "T") {
+        if (state.flags.forestCleared) return tryStoryExit("slayer");
+        setExploreMsg("退治屋の里……森の陣を潰してから向かおう。");
+        return true;
+      }
+      if (tile === "G") {
+        if (state.flags.wellMet) return tryStoryExit("monkpath");
+        setExploreMsg("風穴の辻……骨喰いの井戸のあとで出会えそうだ。");
+        return true;
+      }
+      if (tile === "E") {
+        if (state.flags.narakuMet) return tryStoryExit("tomb");
+        setExploreMsg("七人塚……奈落の気配を追ってから入れそうだ。");
+        return true;
+      }
+      if (tile === "K") {
+        if (state.flags.narakuMet) return tryStoryExit("windfield");
+        setExploreMsg("風の原……奈落の分身の気配がする。");
+        return true;
+      }
+      if (tile === "J") {
+        if (state.flags.narakuMet) return tryStoryExit("mirror");
+        setExploreMsg("死鏡の沼……奈落と関わりのある気配だ。");
+        return true;
+      }
+      if (tile === "U") {
+        if (state.flags.sesshomaruMet) return tryStoryExit("mother");
+        setExploreMsg("母の幻影……殺生丸と会ってから向かおう。");
+        return true;
+      }
+      if (tile === "Y") {
+        if (state.flags.narakuMet) return tryStoryExit("whitepath");
+        setExploreMsg("白霊の道……奈落を追ったあとで開く。");
+        return true;
+      }
+      if (tile === "O") {
+        if (state.flags.villageCleared) return tryStoryExit("orchard");
+        setExploreMsg("桃果の園……村はずれを片付けてから向かおう。");
+        return true;
+      }
+      if (tile === "Q") {
+        if (state.flags.wellMet) return tryStoryExit("kaede");
+        setExploreMsg("楓の里……井戸のあとで訪れるとしよう。");
+        return true;
+      }
       if (tile === "W") return tryStoryExit("well", "骨喰いの井戸へはまだ行けない。");
       if (tile === "H") {
         // Hill finale removed — scenic toast only
@@ -4757,64 +5541,124 @@ html, body {
       return;
     }
     if (id === "pass") {
-      if (!state.flags.sesshomaruMet) {
-        playScene("sesshomaru_intro");
-      } else if (!state.flags.sesshomaruWon) {
-        playScene("sesshomaru_duel_offer");
+      if (!state.flags.sesshomaruWon) {
+        playScene(state.flags.sesshomaruMet ? "sesshomaru_duel_offer" : "sesshomaru_intro");
       } else {
-        toast("西の峠は静まり返っている");
-        enterMap();
+        toast("西の峠……殺生丸一行は既に倒した。");
+        enterExplore("overworld", { from: "pass", skipWalkIntro: true });
       }
       return;
     }
     if (id === "shrine") {
-      if (!state.flags.kikyoMet) {
+      if (!state.flags.kikyoSlain) {
         playScene("kikyo_intro");
       } else {
-        toast("霧の社……桔梗の気配はもう薄い");
-        enterMap();
+        toast("霧の社……桔梗は消えた。");
+        enterExplore("overworld", { from: "shrine", skipWalkIntro: true });
       }
       return;
     }
     if (id === "cliff") {
-      if (!state.flags.kogaMet) {
+      if (!state.flags.kogaSlain) {
         playScene("koga_intro");
       } else {
-        toast("狼の崖は鋼牙の群れが去ったあとだ");
-        showRematch(
-          "鋼牙との再戦",
-          [makeEnemy(ENEMY_TMPL.koga), makeEnemy(ENEMY_TMPL.wolf, "狼妖の部下"), makeEnemy(ENEMY_TMPL.wolf, "狼妖の部下")],
-          () => {
-            state.flags.battlesWon++;
-            state.player.youriki = clamp(state.player.youriki + 15, 0, state.player.maxYouriki);
-            maybeTriggerNestRaidAfterBattle();
-            enterMap();
-          }
-        );
+        toast("狼の崖……鋼牙の群れは潰した。");
+        enterExplore("overworld", { from: "cliff", skipWalkIntro: true });
       }
       return;
     }
     if (id === "shadow") {
-      if (!state.flags.narakuMet) {
+      if (!state.flags.narakuSlain) {
         playScene("naraku_intro");
       } else {
-        toast("影の森……奈落の残滓だけが残る");
-        enterMap();
+        toast("影の森……奈落は倒した。");
+        enterExplore("overworld", { from: "shadow", skipWalkIntro: true });
+      }
+      return;
+    }
+    if (id === "slayer") {
+      if (!state.flags.sangoSlain) playScene("slayer_intro");
+      else {
+        toast("退治屋の里は焼け落ちた。");
+        enterExplore("overworld", { from: "slayer", skipWalkIntro: true });
+      }
+      return;
+    }
+    if (id === "monkpath") {
+      if (!state.flags.mirokuSlain) playScene("monkpath_intro");
+      else {
+        toast("風穴の辻は静まり返っている。");
+        enterExplore("overworld", { from: "monkpath", skipWalkIntro: true });
+      }
+      return;
+    }
+    if (id === "tomb") {
+      if (!state.flags.bankotsuSlain) playScene("tomb_intro");
+      else {
+        toast("七人塚……亡霊は骨に戻った。");
+        enterExplore("overworld", { from: "tomb", skipWalkIntro: true });
+      }
+      return;
+    }
+    if (id === "windfield") {
+      if (!state.flags.kaguraSlain) playScene("windfield_intro");
+      else {
+        toast("風の原……神楽は消えた。");
+        enterExplore("overworld", { from: "windfield", skipWalkIntro: true });
+      }
+      return;
+    }
+    if (id === "mirror") {
+      if (!state.flags.kannaSlain) playScene("mirror_intro");
+      else {
+        toast("死鏡の沼……神無は砕けた。");
+        enterExplore("overworld", { from: "mirror", skipWalkIntro: true });
+      }
+      return;
+    }
+    if (id === "mother") {
+      if (!state.flags.muonnaSlain) playScene("mother_intro");
+      else {
+        toast("母の幻影は散った。");
+        enterExplore("overworld", { from: "mother", skipWalkIntro: true });
+      }
+      return;
+    }
+    if (id === "whitepath") {
+      if (!state.flags.hakudoshiSlain) playScene("whitepath_intro");
+      else {
+        toast("白霊の道……白童子は消えた。");
+        enterExplore("overworld", { from: "whitepath", skipWalkIntro: true });
+      }
+      return;
+    }
+    if (id === "orchard") {
+      if (!state.flags.tokajinSlain) playScene("orchard_intro");
+      else {
+        toast("桃果の園は枯れ果てた。");
+        enterExplore("overworld", { from: "orchard", skipWalkIntro: true });
+      }
+      return;
+    }
+    if (id === "kaede") {
+      if (!state.flags.kaedeSlain) playScene("kaede_intro");
+      else {
+        toast("楓の里は沈黙している。");
+        enterExplore("overworld", { from: "kaede", skipWalkIntro: true });
       }
       return;
     }
     if (id === "well") {
       if (state.flags.inuyashaSlain || state.flags.silverHairTaken) {
-        toast("井戸は静まり返っている。邪魔者は消えた。");
+        toast("井戸は静まり返っている。邪魔者は消えた——欠片狩りを続けよう。");
         enterExplore("overworld", { from: "well", skipWalkIntro: true });
       } else {
-        // Not yet slain — straight to well_intro → battle (no flee/deceive)
         playScene("well_intro");
       }
       return;
     }
     if (id === "hill") {
-      toast("丘の上は風が強いだけ……用事はない。");
+      toast("丘の上は風が強いだけ……用事はない。欠片持ちは他の地点へ。");
       enterExplore("overworld", { from: "hill", skipWalkIntro: true });
     }
   }
@@ -4939,7 +5783,11 @@ html, body {
       state.player.comb +
       "/" +
       state.player.maxComb +
-      "）。巣に歩行マップはない——メニューから休む・結界・セーブできる。";
+      "）。四魂の欠片 " +
+      shardCount() +
+      "/" +
+      SHARD_GOAL +
+      "。巣に歩行マップはない——休む・結界・セーブ・結末ができる。";
     $("#modal-btns").innerHTML = "";
 
     const add = (label, fn, cls) => {
@@ -4977,6 +5825,21 @@ html, body {
     }
 
     add("ステータス", () => showNestStatus());
+
+    if (state.flags.shardHunt || state.flags.inuyashaSlain) {
+      if (shardCount() >= SHARD_GOAL) {
+        add("欠片を完成させる（結末）", () => triggerEnding("shards"), "btn-gold");
+      } else {
+        add(
+          "欠片狩り続行（" + shardCount() + "/" + SHARD_GOAL + "）",
+          () => {
+            toast("マップの地点へ歩き、名前有りの獲物から欠片を奪え。逃げない——狩るだけよ。");
+            showNestMenu();
+          }
+        );
+      }
+      add("狩場を変える（別結末）", () => triggerEnding("path"));
+    }
 
     add("セーブ／メニュー", () => {
       saveGame();
