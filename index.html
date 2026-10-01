@@ -989,7 +989,7 @@ html, body {
   // EXP is kept as progress toward the next level. A level's threshold is
   // level * 100, so the thresholds become 100, 200, 300, ... .
   const EXP_PER_LEVEL = 100;
-  const MIN_NEST_RAID_LEVEL = 12; // was 6: early/mid map safe from nest raids
+  const MIN_NEST_RAID_LEVEL = 10; // ≥10; was 12 (prior), 6 (original)
   const MAX_COMB = 300; // 魂櫛 HP
   const NEST_DEFENSE_HUNTERS = 20;
   const LEVEL_CLOTHES_GROWTH = 10;
@@ -1245,6 +1245,8 @@ html, body {
         hillReady: false,
         ending: null, // shards | path
         battlesWon: 0,
+        gameDay: 1, // in-game day (rest / battle pace)
+        lastNestRaidDay: 0, // last day a nest raid fired
       },
       player: {
         name: "結羅",
@@ -2605,15 +2607,42 @@ html, body {
   }
 
   /** 戦士撃破後：村人は戦闘せず、結羅が一方的に狩り／虐殺（シネマ）——EXP付与 */
-  const VILLAGE_MASSACRE_COUNT = 30;
-  const VILLAGE_MASSACRE_EXP_EACH = 10; // ≈旧・村人戦闘1体分
+  // 村人女は髪が多い→収穫EXP高め。男・その他は従来相当。
+  const VILLAGE_MASSACRE_WOMEN = 18; // 村人女
+  const VILLAGE_MASSACRE_MEN = 12; // 村人男・その他
+  const VILLAGE_MASSACRE_COUNT = VILLAGE_MASSACRE_WOMEN + VILLAGE_MASSACRE_MEN; // 30 (compat)
+  const VILLAGE_MASSACRE_EXP_WOMAN = 22; // was flat 10 for all; women boosted (hair lore)
+  const VILLAGE_MASSACRE_EXP_MAN = 10; // keep prior per-villager rate
+  const VILLAGE_MASSACRE_EXP_EACH = VILLAGE_MASSACRE_EXP_MAN; // compat alias
 
-  function grantMassacreExp(count) {
+  function grantMassacreExp(women, men) {
     const p = state.player;
-    const gained = Math.max(0, (count | 0) * VILLAGE_MASSACRE_EXP_EACH);
+    let w;
+    let m;
+    if (men == null && women != null && typeof women === "number") {
+      // legacy: grantMassacreExp(count) → treat as undifferentiated (man rate)
+      w = 0;
+      m = women | 0;
+    } else {
+      w = women | 0;
+      m = men | 0;
+    }
+    const gained = Math.max(0, w * VILLAGE_MASSACRE_EXP_WOMAN + m * VILLAGE_MASSACRE_EXP_MAN);
     if (gained <= 0) return 0;
     p.exp += gained;
-    toast("村人狩り EXP +" + gained + "！");
+    toast(
+      "村人狩り EXP +" +
+        gained +
+        "！（村人女×" +
+        w +
+        " +" +
+        w * VILLAGE_MASSACRE_EXP_WOMAN +
+        "／男×" +
+        m +
+        " +" +
+        m * VILLAGE_MASSACRE_EXP_MAN +
+        "）"
+    );
     const levels = applyLevelUps(p);
     if (levels > 0) toast("レベルアップ！ Lv" + p.level);
     refreshAllHuds();
@@ -2682,7 +2711,7 @@ html, body {
     const remote = !!opts.remoteHair;
     const loc = LOCATIONS.find((l) => l.id === locId);
     const locName = loc ? loc.name : "村";
-    const gained = grantMassacreExp(VILLAGE_MASSACRE_COUNT);
+    const gained = grantMassacreExp(VILLAGE_MASSACRE_WOMEN, VILLAGE_MASSACRE_MEN);
     state.flags.battlesWon++;
     state.player.youriki = clamp(state.player.youriki + 15, 0, state.player.maxYouriki);
     if (!remote) maybeTriggerNestRaidAfterBattle();
@@ -2690,13 +2719,13 @@ html, body {
       {
         speaker: "結羅",
         text: remote
-          ? "巣に居たまま——黒髪が" + locName + "の家々を走り、逃げ惑う民の髪を、喉を、締め上げる。"
-          : locName + "に黒い髪が渦巻く。抵抗などありはしない。一方的な狩りよ。",
+          ? "巣に居たまま——黒髪が" + locName + "の家々を走り、逃げ惑う民の髪を、喉を、締め上げる。とくに女たちの長い黒髪が、渦に吸われていく。"
+          : locName + "に黒い髪が渦巻く。抵抗などありはしない。村人女の豊かな髪から、とりわけ妖力が滲み出す。",
         img: ASSETS.dramatic,
       },
       {
         speaker: "",
-        text: "【虐殺】村人" + VILLAGE_MASSACRE_COUNT + "人を狩った。EXP +" + gained + "。",
+        text: "【虐殺】村人女" + VILLAGE_MASSACRE_WOMEN + "・村人男" + VILLAGE_MASSACRE_MEN + "を狩った。女の長い髪を多く収穫。EXP +" + gained + "。",
         img: ASSETS.dramatic,
       },
       {
@@ -2897,6 +2926,14 @@ html, body {
   // 魂櫛は巣穴にのみ存在する。フィールド戦闘では櫛ダメージなし。
   // 留守中に奇襲が起き、緊急ターン内に戻って防衛しないと魂櫛破壊→死亡。
   const NEST_RAID_TURNS = 5;
+  /** ≈1 in-game day of field fights; used with rest-day for raid cadence */
+  const BATTLES_PER_GAME_DAY = 5;
+
+  function currentGameDay() {
+    const fromRest = state.flags.gameDay || 1;
+    const fromBattles = 1 + Math.floor((state.flags.battlesWon || 0) / BATTLES_PER_GAME_DAY);
+    return Math.max(fromRest, fromBattles);
+  }
 
   function canTriggerNestRaid() {
     return !!(state.player && state.player.level >= MIN_NEST_RAID_LEVEL);
@@ -2963,7 +3000,7 @@ html, body {
     );
   }
 
-  /** After a field battle win (away from nest): rare / every 8th battle. */
+  /** After a field battle win (away from nest): about once per in-game day. */
   function maybeTriggerNestRaidAfterBattle() {
     if (!canTriggerNestRaid()) return;
     if (state.nestRaid) return;
@@ -2971,13 +3008,14 @@ html, body {
     if (!state.flags.nestAwake || !state.flags.hairGathered) return;
     const won = state.flags.battlesWon || 0;
     if (won < 1) return;
-    // 強く抑制: 8戦ごと保証、それ以外は約8%（旧: 2戦ごと保証＋約40%）
-    if (won % 8 === 0 || Math.random() < 0.08) {
-      startNestRaid(won + "戦目のあと");
-    }
+    const day = currentGameDay();
+    if ((state.flags.lastNestRaidDay || 0) >= day) return; // already raided this day
+    // ~once/day: fire on first eligible win of a new day (rest or ~5 battles)
+    state.flags.lastNestRaidDay = day;
+    startNestRaid(won + "戦目のあと／" + day + "日目");
   }
 
-  /** Mid-combat random raid trigger while away. */
+  /** Mid-combat random raid trigger while away (still ≤ once per in-game day). */
   function maybeTriggerNestRaidMidCombat() {
     if (!canTriggerNestRaid()) return;
     if (state.nestRaid) return;
@@ -2985,9 +3023,12 @@ html, body {
     if (state.location === "nest") return;
     if (!state.flags.nestAwake || !state.flags.hairGathered) return;
     if ((state.flags.battlesWon || 0) < 1) return;
-    // 強く抑制: 敵ターン一巡あたり約2.5%（旧: 約14%）
-    if (Math.random() < 0.025) {
-      startNestRaid("戦闘中の急報");
+    const day = currentGameDay();
+    if ((state.flags.lastNestRaidDay || 0) >= day) return;
+    // Low mid-combat chance; day lock keeps overall cadence ≈ once/day
+    if (Math.random() < 0.04) {
+      state.flags.lastNestRaidDay = day;
+      startNestRaid("戦闘中の急報／" + day + "日目");
     }
   }
 
@@ -4384,8 +4425,9 @@ html, body {
         state.player.comb = state.player.maxComb;
         state.player.buffAtk = 0;
         state.player.buffTurns = 0;
-        toast("休息した。全回復。");
-        setExploreMsg("ベッドで休んだ。服装・妖力・魂櫛が全快。");
+        state.flags.gameDay = (state.flags.gameDay || 1) + 1;
+        toast("休息した。全回復。（" + state.flags.gameDay + "日目）");
+        setExploreMsg("ベッドで休んだ。服装・妖力・魂櫛が全快。（" + state.flags.gameDay + "日目）");
         refreshAllHuds();
         return true;
       }
@@ -5008,7 +5050,8 @@ html, body {
       state.player.comb = state.player.maxComb;
       state.player.buffAtk = 0;
       state.player.buffTurns = 0;
-      toast("休息した。服装・妖力・魂櫛が全回復した。");
+      state.flags.gameDay = (state.flags.gameDay || 1) + 1;
+      toast("休息した。服装・妖力・魂櫛が全回復した。（" + state.flags.gameDay + "日目）");
       refreshAllHuds();
       showNestMenu();
     });
