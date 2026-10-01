@@ -1243,7 +1243,7 @@ html, body {
         kogaMet: false,
         narakuMet: false,
         wellMet: false,
-        wellChoice: null, // flee | trick | fight
+        wellChoice: null, // fight (flee/trick removed — 結羅は逃げない)
         hillReady: false, // legacy (unused; hill finale removed)
         inuyashaSlain: false,
         silverHairTaken: false,
@@ -1882,6 +1882,16 @@ html, body {
   }
 
   function onStoryEnd() {
+    // Dialogue → immediate battle (e.g. well_intro: no flee/deceive)
+    if (state._afterStoryCombat) {
+      const c = state._afterStoryCombat;
+      state._afterStoryCombat = null;
+      beginCombat(c.enemies, c.onWin, c.onLose, {
+        nestDefense: !!c.nestDefense,
+        remoteHair: !!c.remoteHair,
+      });
+      return;
+    }
     // 外出先・魂櫛破壊 Game Over（巣防衛敗北の既存フローはそのまま）
     if (state._awaySoulcombGameOver) {
       state._awaySoulcombGameOver = null;
@@ -2162,6 +2172,11 @@ html, body {
       well_intro: () => {
         state.flags.wellMet = true;
         state.flags.scene = Math.max(state.flags.scene, 5);
+        state.flags.wellChoice = "fight";
+        state._afterStoryCombat = {
+          enemies: [makeEnemy(ENEMY_TMPL.inuyasha), makeEnemy(ENEMY_TMPL.kagome)],
+          onWin: afterWellFightWin,
+        };
         startStory([
           {
             speaker: "結羅",
@@ -2170,7 +2185,7 @@ html, body {
           },
           {
             speaker: "犬夜叉",
-            text: "てめぇが髪鬼の結羅か！ 半妖の俺様が相手だ！",
+            text: "テメェ！？　妖怪の匂いがしやがるぞ！　何モンだ？！",
             img: ASSETS.status,
           },
           {
@@ -2180,71 +2195,8 @@ html, body {
           },
           {
             speaker: "結羅",
-            text: "ふふ……鉄砕牙と、現代の巫女。面白い組み合わせ。\nどうする？ 真正面から戦う？ それとも……",
+            text: "あたしは、逆髪の結羅。覚えなくていいよ。あんた達はここで死ぬんだから。",
             img: ASSETS.dialogue,
-            choices: [
-              {
-                label: "逃げる（髪糸で煙幕）",
-                flag: { wellChoice: "flee" },
-                effect: () => {
-                  state.unlocked = Math.max(state.unlocked, 5);
-                  state.flags.scene = Math.max(state.flags.scene, 6);
-                },
-                next: [
-                  {
-                    speaker: "結羅",
-                    text: "髪を渦巻かせて煙のように姿を消す。\n「また会いましょう、犬の半妖」",
-                    img: ASSETS.combat,
-                  },
-                  {
-                    speaker: "犬夜叉",
-                    text: "ちっ、逃げやがった！",
-                    img: ASSETS.status,
-                  },
-                  {
-                    speaker: "結羅",
-                    text: "（今日はここまで。巣に戻りましょう——続きは、また別の日に）",
-                    img: ASSETS.dramatic,
-                  },
-                ],
-              },
-              {
-                label: "欺く（髪を収集で撹乱）",
-                flag: { wellChoice: "trick" },
-                effect: () => {
-                  state.player.youriki = clamp(state.player.youriki + 20, 0, state.player.maxYouriki);
-                  state.player.buffAtk = 8;
-                  state.player.buffTurns = 3;
-                  state.unlocked = Math.max(state.unlocked, 5);
-                  state.flags.scene = Math.max(state.flags.scene, 6);
-                },
-                next: [
-                  {
-                    speaker: "結羅",
-                    text: "髪を収集——！ あなたの力、少し借りるわね。",
-                    img: ASSETS.combat,
-                  },
-                  {
-                    speaker: "かごめ",
-                    text: "きゃっ！？ 髪が……勝手に動いてる！",
-                    img: ASSETS.status,
-                  },
-                  {
-                    speaker: "結羅",
-                    text: "隙ができたら勝ち、よ。続きは——また巣の外で、別の日にしましょう。",
-                    img: ASSETS.dramatic,
-                  },
-                ],
-              },
-              {
-                label: "戦う",
-                flag: { wellChoice: "fight" },
-                startCombat: {
-                  enemies: [makeEnemy(ENEMY_TMPL.inuyasha), makeEnemy(ENEMY_TMPL.kagome)],
-                  onWin: afterWellFightWin,
-                },
-              },
-            ],
           },
         ]);
       },
@@ -4844,7 +4796,7 @@ html, body {
         toast("井戸は静まり返っている。邪魔者は消えた。");
         enterExplore("overworld", { from: "well", skipWalkIntro: true });
       } else {
-        // Not yet slain — allow fight / flee / deceive (re-entry after flee/trick OK)
+        // Not yet slain — straight to well_intro → battle (no flee/deceive)
         playScene("well_intro");
       }
       return;
