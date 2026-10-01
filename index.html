@@ -1172,7 +1172,7 @@ html, body {
     {
       id: "forest",
       name: "森",
-      info: "深い森。歩いて探索・野良妖怪。フィールドと接続。",
+      info: "フィールド内の深い森。退治屋の陣がある。",
       unlock: 2,
     },
     {
@@ -1218,7 +1218,7 @@ html, body {
     {
       id: "hill",
       name: "決戦の丘",
-      info: "最終の選択が下される丘。",
+      info: "風の強い丘。特に用事はない。",
       unlock: 4,
     },
   ];
@@ -1244,7 +1244,7 @@ html, body {
         narakuMet: false,
         wellMet: false,
         wellChoice: null, // flee | trick | fight
-        hillReady: false,
+        hillReady: false, // legacy (unused; hill finale removed)
         inuyashaSlain: false,
         silverHairTaken: false,
         ending: null, // shards | path
@@ -1907,11 +1907,10 @@ html, body {
       return;
     }
     state._resumeNestDefense = null;
-    // Walk intro (forest etc.) → return to explore overworld
+    // Walk intro → return to explore overworld
     if (state._resumeExploreAfterStory) {
-      const mid = state._resumeExploreAfterStory === true ? "forest" : state._resumeExploreAfterStory;
       state._resumeExploreAfterStory = null;
-      enterExplore(mid || "forest", { resume: true });
+      enterExplore("overworld", { resume: true });
       return;
     }
     // After story: nest is menu-only hub (no walkable interior)
@@ -1919,11 +1918,7 @@ html, body {
       openNestHub();
       return;
     }
-    if (state.location === "forest") {
-      enterExplore("forest", { resume: true });
-      return;
-    }
-    if (state.location === "overworld") {
+    if (state.location === "forest" || state.location === "overworld") {
       enterExplore("overworld", { resume: true });
       return;
     }
@@ -1933,7 +1928,7 @@ html, body {
       "cliff", "shadow", "well", "hill",
     ];
     if (fieldStarts.indexOf(state.location) >= 0) {
-      enterExplore("overworld", { from: state.location });
+      enterExplore("overworld", { from: state.location, skipWalkIntro: true });
       return;
     }
     enterMap();
@@ -2193,7 +2188,6 @@ html, body {
                 flag: { wellChoice: "flee" },
                 effect: () => {
                   state.unlocked = Math.max(state.unlocked, 5);
-                  state.flags.hillReady = true;
                   state.flags.scene = Math.max(state.flags.scene, 6);
                 },
                 next: [
@@ -2209,7 +2203,7 @@ html, body {
                   },
                   {
                     speaker: "結羅",
-                    text: "（決戦の丘で決着をつけましょう）",
+                    text: "（今日はここまで。巣に戻りましょう——続きは、また別の日に）",
                     img: ASSETS.dramatic,
                   },
                 ],
@@ -2222,7 +2216,6 @@ html, body {
                   state.player.buffAtk = 8;
                   state.player.buffTurns = 3;
                   state.unlocked = Math.max(state.unlocked, 5);
-                  state.flags.hillReady = true;
                   state.flags.scene = Math.max(state.flags.scene, 6);
                 },
                 next: [
@@ -2238,7 +2231,7 @@ html, body {
                   },
                   {
                     speaker: "結羅",
-                    text: "隙ができたら勝ち、よ。決戦の丘で続きをしましょう。",
+                    text: "隙ができたら勝ち、よ。続きは——また巣の外で、別の日にしましょう。",
                     img: ASSETS.dramatic,
                   },
                 ],
@@ -2483,7 +2476,7 @@ html, body {
                   },
                   {
                     speaker: "",
-                    text: "影が溶け、森に静寂が戻る。決戦の丘への道が、より近く感じられる。",
+                    text: "影が溶け、森に静寂が戻る。巣へ戻り、次の獲物を選ぶとしよう。",
                     img: ASSETS.dramatic,
                   },
                 ],
@@ -2498,73 +2491,21 @@ html, body {
         startStory([
           {
             speaker: "結羅",
-            text: "深い森……木々の間を黒い髪が滑る。野良の妖怪の気配もするわ。",
+            text: "フィールド……森も丘も、同じ大地の上ね。木々の間を黒い髪が滑る。",
             img: ASSETS.dramatic,
           },
           {
             speaker: "結羅",
-            text: "歩いて探索しましょう。草むらでは遭遇に注意。出口や事件の印を探して。",
+            text: "歩いて探索しましょう。草むらでは遭遇に注意。地点の印へ近づいて事件を起こすのよ。",
             img: ASSETS.dialogue,
           },
         ]);
       },
 
       hill_finale: () => {
-        state.flags.scene = Math.max(state.flags.scene, 7);
-        const cameos = [];
-        if (state.flags.inuyashaSlain) {
-          cameos.push({
-            speaker: "結羅",
-            text: "犬夜叉の銀髪は、すでに妾の手にある。半妖も巫女も——踏み潰したわ。",
-            img: ASSETS.combat,
-          });
-        }
-        if (state.flags.sesshomaruMet) {
-          cameos.push({
-            speaker: "結羅",
-            text: "殺生丸の侮蔑も、まだ耳に残っている。あの犬貴公子にも、いつか同じ礼をしてあげる。",
-            img: ASSETS.dialogue,
-          });
-        }
-        if (state.flags.narakuMet) {
-          cameos.push({
-            speaker: "結羅",
-            text: "奈落の影……巣を狙った言葉は忘れない。欠片の向こうで、あの男も梳いてあげるわ。",
-            img: ASSETS.dramatic,
-          });
-        }
-        startStory(
-          [
-            {
-              speaker: "結羅",
-              text: "決戦の丘……風が強いわ。髪が歌う。妾の勝利の歌よ。",
-              img: ASSETS.dramatic,
-            },
-          ]
-            .concat(cameos)
-            .concat([
-              {
-                speaker: "結羅",
-                text: "四魂の玉の欠片——すべて、妾のもの。迷いなどないわ。\n強さこそが正義。髪は世界を覆い尽くす。",
-                img: ASSETS.dialogue,
-              },
-              {
-                speaker: "結羅",
-                text: "魂櫛を握りしめ——行くわよ。次の獲物も、容赦はしない。",
-                img: ASSETS.dialogue,
-                choices: [
-                  {
-                    label: "四魂の欠片を冷酷に追い求める",
-                    gotoEnding: "shards",
-                  },
-                  {
-                    label: "別の狩場へ向かう（力の道を選ぶ）",
-                    gotoEnding: "path",
-                  },
-                ],
-              },
-            ])
-        );
+        // Post-well hill finale removed — visiting the hill is scenic only.
+        toast("丘の上は風が強いだけ……用事はない。");
+        enterExplore("overworld", { from: "hill", skipWalkIntro: true });
       },
     };
 
@@ -2867,7 +2808,6 @@ html, body {
 
   function afterNarakuWin() {
     state.flags.battlesWon++;
-    state.flags.hillReady = true;
     state.unlocked = Math.max(state.unlocked, 5);
     state.player.youriki = clamp(state.player.youriki + 20, 0, state.player.maxYouriki);
     maybeTriggerNestRaidAfterBattle();
@@ -2879,7 +2819,7 @@ html, body {
       },
       {
         speaker: "結羅",
-        text: "影遊びは終わりよ。決戦の丘で、続きをしましょう。",
+        text: "影遊びは終わりよ。続きは——巣を守りながら、また別の日に。",
         img: ASSETS.dramatic,
       },
     ]);
@@ -2888,7 +2828,6 @@ html, body {
   function afterWellFightWin() {
     state.flags.battlesWon++;
     state.unlocked = Math.max(state.unlocked, 5);
-    state.flags.hillReady = true;
     state.flags.scene = Math.max(state.flags.scene, 6);
     state.flags.inuyashaSlain = true;
     state.flags.silverHairTaken = true;
@@ -2932,7 +2871,7 @@ html, body {
       },
       {
         speaker: "結羅",
-        text: "四魂の欠片への邪魔者は、消えた。\n次も、同じように——愛でるわよ。ふふっ。",
+        text: "四魂の欠片への邪魔者は、消えた。\n巣へ戻ろう——次も、同じように愛でるわよ。ふふっ。",
         img: ASSETS.dramatic,
       },
     ]);
@@ -3208,13 +3147,13 @@ html, body {
 
 
 
-  // ---------- Walkable explore (overworld / forest) ----------
+  // ---------- Walkable explore (single overworld field) ----------
   // Nest is menu-only (黒髪の玉 marker on field) — no walkable interior.
-  // Shared tile legend (per-map meaning for letters):
+  // Forest is a region ON the overworld (F = hunter camp), not a separate map.
+  // Shared tile legend:
   //   # wall  . path  g grass(encounters)  ~ water
-  // Overworld: N nest(髪の玉)  F forest  V/A/B villages  C castle
+  // Overworld: N nest(髪の玉)  F forest/hunters  V/A/B villages  C castle
   //   P pass  S shrine  L cliff  D shadow  W well  H hill  M map menu
-  // Forest: N nest  M overworld  C castle  H hunters  P pass  R shrine  L cliff
 
   function fillRectTiles(tiles, x0, y0, x1, y1, ch, onlyIf) {
     for (let y = y0; y <= y1; y++) {
@@ -3459,7 +3398,12 @@ html, body {
     // clear nest clearing + roads
     fillRectTiles(tiles, 2, 2, 8, 7, ".");
     fillRectTiles(tiles, 10, 4, 18, 6, ".");
+    // deep woods belt (former separate forest map) — denser grass/trees around F
+    fillRectTiles(tiles, 16, 12, 28, 22, "g");
+    fillRectTiles(tiles, 18, 14, 20, 15, "#");
+    fillRectTiles(tiles, 24, 18, 26, 19, "#");
     // landmarks (center x,y) — multi-tile footprints
+    // F = forest hunter camp (not a map portal)
     const marks = {
       N: [5, 4, "nest"],
       V: [12, 8, "village"],
@@ -3507,7 +3451,7 @@ html, body {
         // south of nest circle (not on N tiles)
         default: [5, 7],
         nest: [5, 7],
-        forest: [22, 19],
+        forest: [22, 19], // deep woods / hunter camp approach
         village: [12, 10],
         villageA: [28, 9],
         villageB: [8, 24],
@@ -3519,6 +3463,7 @@ html, body {
         well: [32, 22],
         hill: [42, 30],
         map: [22, 19],
+        overworld: [5, 7],
       },
       blockMsg: "行けない……",
     };
@@ -3623,10 +3568,13 @@ html, body {
     };
   }
 
+  // Single walkable field: forest map builders kept for reference but unused.
+  const EXPLORE_OVERWORLD = buildLargeOverworld();
   const EXPLORE_MAPS = {
     nest: buildLargeNest(),
-    overworld: buildLargeOverworld(),
-    forest: buildLargeForest(),
+    overworld: EXPLORE_OVERWORLD,
+    // Compat: old saves / calls to "forest" land on the unified overworld
+    forest: EXPLORE_OVERWORLD,
   };
 
   // ---------- Pixel-art explore (procedural 16×16 tiles) ----------
@@ -3644,8 +3592,8 @@ html, body {
 
   const EXPLORE_LEGEND = {
     nest: "巣はメニューのみ（歩行なし）",
-    overworld: "大フィールド　地点はイラスト看板　黒髪玉＝巣　草（稀に龍）",
-    forest: "大森林　地点イラスト　巣の黒髪玉　出口でフィールドへ",
+    overworld: "大フィールド（森含む）　地点はイラスト看板　黒髪玉＝巣　F＝退治屋　草（稀に龍）",
+    forest: "大フィールド（森含む）　地点はイラスト看板　黒髪玉＝巣　F＝退治屋　草（稀に龍）",
   };
 
   function pxFill(g, color, rects) {
@@ -4270,13 +4218,18 @@ html, body {
       openNestHub(opts);
       return;
     }
+    // Unified field: former forest map is the overworld deep-woods region
+    if (mapId === "forest") {
+      mapId = "overworld";
+      if (!opts.from || opts.from === "default") opts = Object.assign({}, opts, { from: "forest" });
+    }
     const mapDef = getExploreMap(mapId);
     if (!mapDef) {
       toast("その場所には歩けない");
       enterMap();
       return;
     }
-    state.location = mapId === "overworld" ? "overworld" : mapId;
+    state.location = "overworld";
     const built = buildExploreTiles(mapDef);
     let sx;
     let sy;
@@ -4288,10 +4241,17 @@ html, body {
     // Resume same map position
     if (opts.resume) {
       const pos = state._exploreResume || state._forestExploreResume || explore;
-      if (pos && (pos.mapId === mapId || (!pos.mapId && mapId === "forest"))) {
+      const posMid = pos && pos.mapId;
+      const sameField =
+        pos &&
+        (posMid === mapId ||
+          posMid === "overworld" ||
+          posMid === "forest" ||
+          !posMid);
+      if (sameField && pos.x != null) {
         sx = pos.x;
         sy = pos.y;
-      } else if (explore && explore.mapId === mapId) {
+      } else if (explore && (explore.mapId === mapId || explore.mapId === "forest" || explore.mapId === "overworld")) {
         sx = explore.x;
         sy = explore.y;
       }
@@ -4347,16 +4307,16 @@ html, body {
         "）カメラ追従。十字／WASDで歩く。"
     );
 
-    if (mapId === "forest" && !state.flags.forestIntroSeen && !opts.resume) {
-      state._resumeExploreAfterStory = "forest";
+    if (!state.flags.forestIntroSeen && !opts.resume && !opts.skipWalkIntro) {
+      state._resumeExploreAfterStory = "overworld";
       playScene("forest_walk_intro");
     }
   }
 
-  /** Compat: forest entry */
+  /** Compat: forest entry → unified overworld near woods */
   function enterForestExplore(opts) {
     opts = opts || {};
-    enterExplore("forest", opts);
+    enterExplore("overworld", Object.assign({ from: "forest" }, opts));
   }
 
   function setExploreMsg(msg) {
@@ -4497,117 +4457,24 @@ html, body {
       return false;
     }
 
-    // ---- Overworld ----
-    if (mid === "overworld") {
+    // ---- Overworld (includes deep woods; former forest map merged here) ----
+    if (mid === "overworld" || mid === "forest") {
       if (tile === "N") {
         setExploreMsg("黒髪の玉——結羅の巣だ。");
         openNestHub({ fromField: true });
         return true;
       }
       if (tile === "F") {
-        setExploreMsg("深い森への入り口……");
-        leaveExploreToMap("forest", "overworld");
-        return true;
-      }
-      if (tile === "M") {
-        setExploreMsg("メニューを開く。");
-        explore = null;
-        enterMap();
-        return true;
-      }
-      if (tile === "V") return tryStoryExit("village", "村はずれ……まだ静かだ。");
-      if (tile === "A") return tryStoryExit("villageA", "村Aへの道はまだ遠い。");
-      if (tile === "B") return tryStoryExit("villageB", "村Bはまだ入れない。");
-      if (tile === "C") return tryStoryExit("castle", "城門は固く閉ざされている。");
-      if (tile === "P") {
-        if (state.flags.forestCleared) return tryStoryExit("pass");
-        setExploreMsg("西の峠……森の退治屋を片付けてからにしよう。");
-        return false;
-      }
-      if (tile === "S") {
-        if (state.flags.wellMet) return tryStoryExit("shrine");
-        setExploreMsg("霧の社……今は扉が開かない。");
-        return false;
-      }
-      if (tile === "L") {
-        if (state.flags.forestCleared) return tryStoryExit("cliff");
-        setExploreMsg("狼の匂い……まだ早い気がする。");
-        return false;
-      }
-      if (tile === "D") {
-        if (state.flags.sesshomaruMet) return tryStoryExit("shadow");
-        setExploreMsg("影の森……殺生丸と会ってからの方がいい。");
-        return false;
-      }
-      if (tile === "W") return tryStoryExit("well", "骨喰いの井戸へはまだ行けない。");
-      if (tile === "H") {
-        if (state.flags.hillReady) return tryStoryExit("hill");
-        setExploreMsg("決戦の丘……骨喰いの井戸を先に。");
-        return false;
-      }
-      return false;
-    }
-
-    // ---- Forest (original + overworld link) ----
-    if (mid === "forest") {
-      if (tile === "N") {
-        setExploreMsg("黒髪の玉——巣への抜け道……");
-        openNestHub({ fromField: true });
-        return true;
-      }
-      if (tile === "M") {
-        setExploreMsg("森の外のフィールドへ。");
-        leaveExploreToMap("overworld", "forest");
-        return true;
-      }
-      if (tile === "C") {
-        setExploreMsg("城方面の獣道だ。");
-        explore = null;
-        if (isLocUnlocked(LOCATIONS.find((l) => l.id === "castle"))) {
-          visitLocation("castle");
-        } else {
-          toast("城へはまだ行けない");
-          enterExplore("overworld", { from: "forest" });
-        }
-        return true;
-      }
-      if (tile === "P") {
-        if (state.flags.forestCleared) {
-          setExploreMsg("西の峠へ続く道……");
-          leaveExploreToLocation("pass");
-          return true;
-        }
-        setExploreMsg("西へ続く道だが、気配が強すぎる。退治屋を先に片付けよう。");
-        return false;
-      }
-      if (tile === "R") {
-        if (state.flags.wellMet) {
-          setExploreMsg("霧の社の気配……");
-          leaveExploreToLocation("shrine");
-          return true;
-        }
-        setExploreMsg("霧の向こうに社があるようだが、今は扉が開かない。");
-        return false;
-      }
-      if (tile === "L") {
-        if (state.flags.forestCleared) {
-          setExploreMsg("狼の崖へ続く獣道。");
-          leaveExploreToLocation("cliff");
-          return true;
-        }
-        setExploreMsg("狼の匂い……まだ早い気がする。");
-        return false;
-      }
-      if (tile === "H") {
+        // Deep woods hunter camp (was the separate forest map's H)
         if (!state.flags.forestCleared) {
           explore.encounterLock = true;
-          setExploreMsg("退治屋の陣営だ！");
+          setExploreMsg("深い森の退治屋の陣営だ！");
           saveExploreResume();
           explore = null;
           playScene("forest_intro");
           return true;
         }
-        setExploreMsg("退治屋の残骸……もう誰もいない。");
+        setExploreMsg("退治屋の残骸……深い森は静まり返っている。");
         explore.encounterLock = true;
         showModal();
         $("#modal-title").textContent = "退治屋の陣跡";
@@ -4643,6 +4510,43 @@ html, body {
           setExploreMsg("先へ進む。");
         };
         $("#modal-btns").append(yes, no);
+        return true;
+      }
+      if (tile === "M") {
+        setExploreMsg("メニューを開く。");
+        explore = null;
+        enterMap();
+        return true;
+      }
+      if (tile === "V") return tryStoryExit("village", "村はずれ……まだ静かだ。");
+      if (tile === "A") return tryStoryExit("villageA", "村Aへの道はまだ遠い。");
+      if (tile === "B") return tryStoryExit("villageB", "村Bはまだ入れない。");
+      if (tile === "C") return tryStoryExit("castle", "城門は固く閉ざされている。");
+      if (tile === "P") {
+        if (state.flags.forestCleared) return tryStoryExit("pass");
+        setExploreMsg("西の峠……森の退治屋を片付けてからにしよう。");
+        return false;
+      }
+      if (tile === "S" || tile === "R") {
+        if (state.flags.wellMet) return tryStoryExit("shrine");
+        setExploreMsg("霧の社……今は扉が開かない。");
+        return false;
+      }
+      if (tile === "L") {
+        if (state.flags.forestCleared) return tryStoryExit("cliff");
+        setExploreMsg("狼の匂い……まだ早い気がする。");
+        return false;
+      }
+      if (tile === "D") {
+        if (state.flags.sesshomaruMet) return tryStoryExit("shadow");
+        setExploreMsg("影の森……殺生丸と会ってからの方がいい。");
+        return false;
+      }
+      if (tile === "W") return tryStoryExit("well", "骨喰いの井戸へはまだ行けない。");
+      if (tile === "H") {
+        // Hill finale removed — scenic toast only
+        setExploreMsg("丘の上は風が強い……特に用事はない。");
+        toast("決戦の丘……今はただの丘だ。");
         return true;
       }
       return false;
@@ -4698,10 +4602,11 @@ html, body {
 
   function resumeExplore(msg) {
     const pos = state._exploreResume || state._forestExploreResume || null;
-    const mapId = (pos && pos.mapId) || (explore && explore.mapId) || "forest";
+    let mapId = (pos && pos.mapId) || (explore && explore.mapId) || "overworld";
+    if (mapId === "forest") mapId = "overworld";
     state._exploreResume = null;
     state._forestExploreResume = null;
-    enterExplore(mapId, { resume: true });
+    enterExplore(mapId, { resume: true, skipWalkIntro: true });
     if (pos && explore) {
       explore.x = pos.x;
       explore.y = pos.y;
@@ -4766,7 +4671,7 @@ html, body {
     hint.className = "map-hub-hint";
     hint.innerHTML =
       "<p><strong>移動はマップを歩いて行う。</strong></p>" +
-      "<p>フィールド・森を歩く。黒い髪の玉＝結羅の巣（入るとメニューのみ）。</p>" +
+      "<p>フィールド（森含む）を歩く。黒い髪の玉＝結羅の巣（入るとメニューのみ）。</p>" +
       "<p>髪の結界は巣メニューから。黒髪をマップ上で伸ばして村を襲え。</p>";
     grid.appendChild(hint);
 
@@ -4780,16 +4685,10 @@ html, body {
       actions.appendChild(b);
     };
     mk("フィールドを歩く", () => {
-      const from =
-        state.location === "nest"
-          ? "nest"
-          : state.location === "forest"
-            ? "forest"
-            : "default";
-      enterExplore("overworld", { from: from });
+      const from = state.location === "nest" ? "nest" : "default";
+      enterExplore("overworld", { from: from, skipWalkIntro: state.flags.forestIntroSeen });
     }, "btn-gold btn-block");
     mk("巣穴へ戻る", () => visitLocation("nest"), "btn-block");
-    mk("森へ（フィールド経由も可）", () => enterExplore("forest", { from: "default" }), "btn-block");
     grid.appendChild(actions);
 
     // Status readout (not clickable destinations)
@@ -4890,7 +4789,7 @@ html, body {
       return;
     }
     if (id === "forest") {
-      enterForestExplore();
+      enterForestExplore({ skipWalkIntro: state.flags.forestIntroSeen });
       return;
     }
     if (id === "pass") {
@@ -4941,23 +4840,18 @@ html, body {
       return;
     }
     if (id === "well") {
-      if (!state.flags.wellMet) {
-        playScene("well_intro");
-      } else if (!state.flags.hillReady) {
-        playScene("well_intro");
+      if (state.flags.inuyashaSlain || state.flags.silverHairTaken) {
+        toast("井戸は静まり返っている。邪魔者は消えた。");
+        enterExplore("overworld", { from: "well", skipWalkIntro: true });
       } else {
-        toast("井戸は静まり返っている。決戦の丘へ。");
-        enterMap();
+        // Not yet slain — allow fight / flee / deceive (re-entry after flee/trick OK)
+        playScene("well_intro");
       }
       return;
     }
     if (id === "hill") {
-      if (state.flags.hillReady) {
-        playScene("hill_finale");
-      } else {
-        toast("まだ決戦の時ではない……骨喰いの井戸へ");
-        enterMap();
-      }
+      toast("丘の上は風が強いだけ……用事はない。");
+      enterExplore("overworld", { from: "hill", skipWalkIntro: true });
     }
   }
 
@@ -5017,6 +4911,7 @@ html, body {
     hideModal();
     state.location = "overworld";
     if (explore && (explore.mapId === "overworld" || explore.mapId === "forest")) {
+      explore.mapId = "overworld";
       explore.encounterLock = false;
       bumpOffNestMarker();
       showScreen("explore");
@@ -5026,7 +4921,7 @@ html, body {
       updateExploreHairButtons();
       return;
     }
-    enterExplore("overworld", { from: "nest" });
+    enterExplore("overworld", { from: "nest", skipWalkIntro: state.flags.forestIntroSeen });
   }
 
   function returnToNestExplore() {
@@ -5146,7 +5041,9 @@ html, body {
       $("#modal-btns").appendChild(b);
     };
     add("見えぬ髪を伸ばす（マップ操作）", () => enterHairBarrierMap(), "btn-gold");
-    add("フィールドへ出て歩く", () => enterExplore("overworld", { from: "nest" }));
+    add("フィールドへ出て歩く", () =>
+      enterExplore("overworld", { from: "nest", skipWalkIntro: state.flags.forestIntroSeen })
+    );
     add("やめる", () => showNestMenu());
     showModal();
   }
@@ -5154,7 +5051,7 @@ html, body {
   /** compat stub — destination buttons removed */
   function showHairRaidTargetSelect(remoteHair) {
     if (remoteHair) enterHairBarrierMap();
-    else enterExplore("overworld", { from: "nest" });
+    else enterExplore("overworld", { from: "nest", skipWalkIntro: state.flags.forestIntroSeen });
   }
 
   const HAIR_TARGET_TILES = {
@@ -5165,7 +5062,7 @@ html, body {
   };
 
   function enterHairBarrierMap() {
-    enterExplore("overworld", { from: "nest" });
+    enterExplore("overworld", { from: "nest", skipWalkIntro: true, keepHair: true });
     if (!explore) return;
     const ox = explore.x;
     const oy = explore.y;
@@ -6064,8 +5961,8 @@ html, body {
     const bwalk = $("#btn-walk-field");
     if (bwalk)
       bwalk.onclick = () => {
-        const from = state.location === "nest" ? "nest" : state.location === "forest" ? "forest" : "default";
-        enterExplore("overworld", { from: from });
+        const from = state.location === "nest" ? "nest" : "default";
+        enterExplore("overworld", { from: from, skipWalkIntro: state.flags.forestIntroSeen });
       };
 
     // Explore D-pad / actions
