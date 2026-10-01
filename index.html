@@ -4014,13 +4014,50 @@ html, body {
     if (!explore || !explore.landmarks || !explore.landmarks.length) return;
     const cache = ensureLandmarkImages();
     if (!cache) return;
+    const covered = []; // AABB in tile coords for wall redraw
     for (let i = 0; i < explore.landmarks.length; i++) {
       const lm = explore.landmarks[i];
       const img = cache[lm.ch];
       if (!img || !img.complete || !img.naturalWidth) continue;
       const dx = Math.round(lm.x * PX + PX / 2 - img.naturalWidth / 2 - camPx);
       const dy = Math.round(lm.y * PX + PX / 2 - img.naturalHeight / 2 - camPy);
+      // Clip overlay so it does not paint over blocking tiles (# / ~).
+      // Players must see walls/water as solid even when landmark art is large.
+      ctx.save();
+      ctx.beginPath();
+      const tw = Math.ceil(img.naturalWidth / PX) + 2;
+      const th = Math.ceil(img.naturalHeight / PX) + 2;
+      const tx0 = Math.max(0, lm.x - Math.ceil(tw / 2) - 1);
+      const ty0 = Math.max(0, lm.y - Math.ceil(th / 2) - 1);
+      const tx1 = Math.min(explore.w - 1, lm.x + Math.ceil(tw / 2) + 1);
+      const ty1 = Math.min(explore.h - 1, lm.y + Math.ceil(th / 2) + 1);
+      for (let y = ty0; y <= ty1; y++) {
+        for (let x = tx0; x <= tx1; x++) {
+          const t = explore.tiles[y][x];
+          if (t === "#" || t === "~") continue;
+          const sx = Math.round(x * PX - camPx);
+          const sy = Math.round(y * PX - camPy);
+          ctx.rect(sx, sy, PX, PX);
+        }
+      }
+      ctx.clip();
       ctx.drawImage(img, dx, dy);
+      ctx.restore();
+      covered.push({ tx0: tx0, ty0: ty0, tx1: tx1, ty1: ty1 });
+    }
+    // Belt-and-suspenders: redraw blocking tiles on top of any residual overlay bleed.
+    if (!exploreTileCache) return;
+    for (let c = 0; c < covered.length; c++) {
+      const box = covered[c];
+      for (let y = box.ty0; y <= box.ty1; y++) {
+        for (let x = box.tx0; x <= box.tx1; x++) {
+          const ch = explore.tiles[y][x];
+          if (ch !== "#" && ch !== "~") continue;
+          const spr = tileSpriteFor(ch, explore.mapId);
+          if (!spr) continue;
+          ctx.drawImage(spr, Math.round(x * PX - camPx), Math.round(y * PX - camPy));
+        }
+      }
     }
   }
 
@@ -4307,6 +4344,7 @@ html, body {
   const VIEW_TH = 11; // tiles visible vertically
   let exploreFacing = 2; // 0=up 1=right 2=down 3=left
   let exploreWalk = null; // { ox, oy, nx, ny, start, dur }
+  let explorePendingMove = null; // one buffered step { dx, dy } while walk anim plays
   let exploreRaf = 0;
   let exploreTileCache = null;
   let explorePlayerCache = null; // [facing][frame]
@@ -4735,6 +4773,7 @@ html, body {
       exploreRaf = 0;
     }
     exploreWalk = null;
+    explorePendingMove = null;
   }
 
   function ensureExploreLoop() {
@@ -4745,6 +4784,7 @@ html, body {
       const screen = document.getElementById("screen-explore");
       if (!screen || !screen.classList.contains("active")) {
         exploreWalk = null;
+        explorePendingMove = null;
         return;
       }
       let need = false;
@@ -4754,7 +4794,15 @@ html, body {
         if (t >= 1) {
           exploreWalk = null;
           onExploreWalkArrive();
-          need = !!explore;
+          // Apply one buffered step after arrival (skip if left explore / locked).
+          if (explore && explorePendingMove && !explore.encounterLock && !exploreHairMode) {
+            const p = explorePendingMove;
+            explorePendingMove = null;
+            exploreMove(p.dx, p.dy);
+          } else {
+            explorePendingMove = null;
+          }
+          need = !!(explore && exploreWalk);
         } else {
           need = true;
         }
@@ -5107,7 +5155,16 @@ html, body {
       hairMove(dx, dy);
       return;
     }
-    if (explore.encounterLock || exploreWalk) return;
+    if (explore.encounterLock) return;
+    // During walk anim (~0.13s), buffer one pending step so rapid taps are not lost.
+    if (exploreWalk) {
+      if (dx === 0 && dy === -1) exploreFacing = 0;
+      else if (dx === 1 && dy === 0) exploreFacing = 1;
+      else if (dx === 0 && dy === 1) exploreFacing = 2;
+      else if (dx === -1 && dy === 0) exploreFacing = 3;
+      explorePendingMove = { dx: dx, dy: dy };
+      return;
+    }
     if (dx === 0 && dy === -1) exploreFacing = 0;
     else if (dx === 1 && dy === 0) exploreFacing = 1;
     else if (dx === 0 && dy === 1) exploreFacing = 2;
@@ -5118,6 +5175,7 @@ html, body {
     if (!isExploreWalkable(nx, ny)) {
       const bt = (ny >= 0 && ny < explore.h && nx >= 0 && nx < explore.w) ? explore.tiles[ny][nx] : "#";
       setExploreMsg(bt === "~" ? "深い水だ……渡れない。" : (explore.blockMsg || "行けない……"));
+      explorePendingMove = null;
       drawExploreCanvas(performance.now());
       return;
     }
@@ -5126,6 +5184,7 @@ html, body {
     explore.x = nx;
     explore.y = ny;
     explore.steps++;
+    explorePendingMove = null;
     exploreWalk = {
       ox: ox,
       oy: oy,
