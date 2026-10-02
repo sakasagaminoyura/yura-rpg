@@ -6484,6 +6484,17 @@ html, body {
     grid.appendChild(status);
   }
 
+  // After declining a cleared-location rematch, keep that location quiet briefly.
+  // This is intentionally in-memory: it is a short UX cooldown, not game progress.
+  const REMATCH_DECLINE_COOLDOWN_MS = 20000;
+  const rematchDeclinedAt = Object.create(null);
+
+  function isRematchOnCooldown(locationId) {
+    if (!locationId) return false;
+    const declinedAt = rematchDeclinedAt[locationId] || 0;
+    return declinedAt > 0 && Date.now() - declinedAt < REMATCH_DECLINE_COOLDOWN_MS;
+  }
+
   function visitLocation(id) {
     const prev = state.location;
     state.location = id;
@@ -6508,7 +6519,8 @@ html, body {
         showRematch(
           "村人戦士との再戦",
           [makeEnemy(ENEMY_TMPL.villager), makeEnemy(ENEMY_TMPL.villager)],
-          () => afterVillageWin({ remoteHair: false })
+          () => afterVillageWin({ remoteHair: false }),
+          id
         );
       }
       return;
@@ -6525,7 +6537,8 @@ html, body {
             makeEnemy(ENEMY_TMPL.villager, "村A戦士"),
             makeEnemy(ENEMY_TMPL.hunter, "巡回の退治屋"),
           ],
-          () => afterVillageAWin({ remoteHair: false })
+          () => afterVillageAWin({ remoteHair: false }),
+          id
         );
       }
       return;
@@ -6542,7 +6555,8 @@ html, body {
             makeEnemy(ENEMY_TMPL.villager, "村B戦士"),
             makeEnemy(ENEMY_TMPL.monk, "村の法師"),
           ],
-          () => afterVillageBWin({ remoteHair: false })
+          () => afterVillageBWin({ remoteHair: false }),
+          id
         );
       }
       return;
@@ -6560,7 +6574,8 @@ html, body {
             makeEnemy(ENEMY_TMPL.monk, "城の法師"),
             makeEnemy(ENEMY_TMPL.villager, "城の剣士"),
           ],
-          () => afterCastleWin({ remoteHair: false })
+          () => afterCastleWin({ remoteHair: false }),
+          id
         );
       }
       return;
@@ -7158,7 +7173,12 @@ html, body {
     setExploreMsg("再戦を断ってフィールドへ戻った。");
   }
 
-  function showRematch(title, enemies, onWin) {
+  function showRematch(title, enemies, onWin, locationId) {
+    if (isRematchOnCooldown(locationId)) {
+      toast("再戦の確認は少しの間お休み。先へ進めるわ。");
+      returnAfterRematchDecline();
+      return;
+    }
     $("#modal-title").textContent = title;
     $("#modal-body").textContent = "再戦しますか？（報酬は少なめ）";
     $("#modal-btns").innerHTML = "";
@@ -7172,7 +7192,10 @@ html, body {
     const no = document.createElement("button");
     no.className = "btn";
     no.textContent = "再戦を断る";
-    no.onclick = () => returnAfterRematchDecline();
+    no.onclick = () => {
+      if (locationId) rematchDeclinedAt[locationId] = Date.now();
+      returnAfterRematchDecline();
+    };
     $("#modal-btns").append(yes, no);
     showModal();
   }
