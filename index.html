@@ -7209,7 +7209,14 @@ html, body {
       head.textContent = "敵 " + alive + " / " + combat.enemies.length + " 生存";
       es.appendChild(head);
     }
-    combat.enemies.forEach((e, i) => {
+    // Keep defeated foes visible for battle history, but put them after living
+    // foes so a selected skill can never accidentally land on a corpse. Keep
+    // the original array index alongside each entry; combat logic uses that
+    // index, not the visual position.
+    const enemyEntries = combat.enemies
+      .map((enemy, index) => ({ enemy, index }))
+      .sort((a, b) => Number(a.enemy.dead) - Number(b.enemy.dead));
+    enemyEntries.forEach(({ enemy: e, index: enemyIndex }) => {
       const card = document.createElement("div");
       card.className =
         "unit-card enemy" +
@@ -7251,7 +7258,18 @@ html, body {
       }
       if (!e.dead && !combat.finished && combat.turn === "player" && combat.selectedSkill) {
         card.style.cursor = "pointer";
-        card.onclick = () => executeSkill(combat.selectedSkill, i);
+        card.onclick = () => executeSkill(combat.selectedSkill, enemyIndex);
+      } else if (e.dead && !combat.finished && combat.turn === "player" && combat.selectedSkill) {
+        // A stale tap on a defeated card must cancel target selection rather
+        // than leave the player stuck waiting for a valid target.
+        card.style.cursor = "not-allowed";
+        card.setAttribute("aria-disabled", "true");
+        card.onclick = () => {
+          if (!combat || combat.finished || combat.turn !== "player") return;
+          combat.selectedSkill = null;
+          addLog("倒れた敵は対象にできません。", "sys");
+          renderCombat();
+        };
       }
       es.appendChild(card);
     });
@@ -7365,6 +7383,16 @@ html, body {
     const sk = SKILLS[skillId];
     const p = state.player;
     const cost = sk.youriki || 0;
+    const requiresTarget = sk.target === "single";
+    const target = targetIdx >= 0 ? combat.enemies[targetIdx] : null;
+    if (requiresTarget && (!target || target.dead)) {
+      // Do not spend resources or silently retarget when a stale/dead slot is
+      // clicked. Clear the mode so target-select can never softlock.
+      combat.selectedSkill = null;
+      addLog("倒れた敵は対象にできません。", "sys");
+      renderCombat();
+      return;
+    }
     if (p.youriki < cost) {
       addLog("妖力が足りない！", "sys");
       return;
@@ -7379,9 +7407,7 @@ html, body {
       const targets =
         sk.target === "all"
           ? livingEnemies()
-          : targetIdx >= 0 && !combat.enemies[targetIdx].dead
-            ? [combat.enemies[targetIdx]]
-            : livingEnemies().slice(0, 1);
+          : [target];
       if (!targets.length) {
         p.youriki += cost;
         addLog("対象がいない", "sys");
@@ -7403,10 +7429,7 @@ html, body {
     }
 
     if (sk.type === "steal") {
-      const e =
-        targetIdx >= 0 && !combat.enemies[targetIdx].dead
-          ? combat.enemies[targetIdx]
-          : livingEnemies()[0];
+      const e = target;
       if (!e) {
         p.youriki += cost;
         afterPlayerAction();
@@ -7435,9 +7458,7 @@ html, body {
       const targets =
         sk.target === "all"
           ? livingEnemies()
-          : targetIdx >= 0 && !combat.enemies[targetIdx].dead
-            ? [combat.enemies[targetIdx]]
-            : livingEnemies().slice(0, 1);
+          : [target];
       targets.forEach((e) => {
         const dmg = calcPlayerSkillDamage(sk, e, dmgBonus);
         e.hp -= dmg;
@@ -7458,9 +7479,7 @@ html, body {
       const targets =
         sk.target === "all"
           ? livingEnemies()
-          : targetIdx >= 0 && !combat.enemies[targetIdx].dead
-            ? [combat.enemies[targetIdx]]
-            : livingEnemies().slice(0, 1);
+          : [target];
       if (!targets.length) {
         p.youriki += cost;
         addLog("対象がいない", "sys");
