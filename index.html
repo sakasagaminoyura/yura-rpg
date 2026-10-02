@@ -755,6 +755,34 @@ html, body {
   letter-spacing: 0.02em;
 }
 
+
+/* 次の目標（常時表示） */
+.hud-objective {
+  color: var(--gold);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex: 1;
+  text-align: right;
+  line-height: 1.3;
+}
+.explore-objective {
+  margin: 4px 0 0;
+  padding: 4px 8px;
+  background: rgba(80, 50, 10, 0.55);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  color: #ffe9a0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.map-objective {
+  color: var(--gold);
+  font-size: 1rem;
+  margin-bottom: 8px;
+}
+
 </style>
 </head>
 <body>
@@ -786,7 +814,8 @@ html, body {
           <div class="stat-row bar-youriki"><span class="stat-label">妖力</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">60/100</span></div>
           <div class="stat-row bar-combat-stats"><span class="stat-label">能力</span><span class="hud-atk">攻撃 12</span><span class="hud-def">防御 4</span></div>
           <div class="stat-row"><span class="stat-label">四魂</span><span class="hud-shards">欠片 0/12</span></div>
-          <div class="stat-row bar-comb"><span class="stat-label">魂櫛</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">300/300</span></div>
+          <div class="stat-row bar-comb"><span class="stat-label">魂櫛</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">10/10</span></div>
+          <div class="stat-row"><span class="stat-label">目標</span><span class="hud-objective">次：巣で目覚める</span></div>
           <div class="stat-row bar-exp"><span class="stat-label">EXP</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">0/100</span></div>
         </div>
       </div>
@@ -814,7 +843,8 @@ html, body {
           <div class="stat-row bar-youriki"><span class="stat-label">妖力</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">60/100</span></div>
           <div class="stat-row bar-combat-stats"><span class="stat-label">能力</span><span class="hud-atk">攻撃 12</span><span class="hud-def">防御 4</span></div>
           <div class="stat-row"><span class="stat-label">四魂</span><span class="hud-shards">欠片 0/12</span></div>
-          <div class="stat-row bar-comb"><span class="stat-label">魂櫛</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">300/300</span></div>
+          <div class="stat-row bar-comb"><span class="stat-label">魂櫛</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">10/10</span></div>
+          <div class="stat-row"><span class="stat-label">目標</span><span class="hud-objective">次：巣で目覚める</span></div>
           <div class="stat-row bar-exp"><span class="stat-label">EXP</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">0/100</span></div>
         </div>
       </div>
@@ -840,7 +870,8 @@ html, body {
           <div class="stat-row bar-youriki"><span class="stat-label">妖力</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">60/100</span></div>
           <div class="stat-row bar-combat-stats"><span class="stat-label">能力</span><span class="hud-atk">攻撃 12</span><span class="hud-def">防御 4</span></div>
           <div class="stat-row"><span class="stat-label">四魂</span><span class="hud-shards">欠片 0/12</span></div>
-          <div class="stat-row bar-comb"><span class="stat-label">魂櫛</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">300/300</span></div>
+          <div class="stat-row bar-comb"><span class="stat-label">魂櫛</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">10/10</span></div>
+          <div class="stat-row"><span class="stat-label">目標</span><span class="hud-objective">次：巣で目覚める</span></div>
           <div class="stat-row bar-exp"><span class="stat-label">EXP</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">0/100</span></div>
         </div>
       </div>
@@ -865,7 +896,8 @@ html, body {
           <div class="stat-row bar-youriki"><span class="stat-label">妖力</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">60/100</span></div>
           <div class="stat-row bar-combat-stats"><span class="stat-label">能力</span><span class="hud-atk">攻撃 12</span><span class="hud-def">防御 4</span></div>
           <div class="stat-row"><span class="stat-label">四魂</span><span class="hud-shards">欠片 0/12</span></div>
-          <div class="stat-row bar-comb"><span class="stat-label">魂櫛</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">300/300</span></div>
+          <div class="stat-row bar-comb"><span class="stat-label">魂櫛</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">10/10</span></div>
+          <div class="stat-row"><span class="stat-label">目標</span><span class="hud-objective">次：巣で目覚める</span></div>
           <div class="stat-row bar-exp"><span class="stat-label">EXP</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">0/100</span></div>
         </div>
       </div>
@@ -873,6 +905,7 @@ html, body {
         <div class="explore-header">
           <h2 class="explore-title" id="explore-title">探索</h2>
           <p class="explore-msg" id="explore-msg">探索中……</p>
+          <p class="explore-objective" id="explore-objective">次：巣で目覚める</p>
         </div>
         <div class="explore-canvas-wrap" id="explore-canvas-wrap">
           <canvas id="explore-canvas" width="240" height="176" aria-label="探索マップ（スクロール・ドット絵）"></canvas>
@@ -1024,7 +1057,7 @@ html, body {
   // level * 100, so the thresholds become 100, 200, 300, ... .
   const EXP_PER_LEVEL = 100;
   const MIN_NEST_RAID_LEVEL = 10; // ≥10; was 12 (prior), 6 (original)
-  const MAX_COMB = 300; // 魂櫛 HP
+  const MAX_COMB = 10; // 魂櫛 HP（旧300から縮小。休息では回復しない）
   const NEST_DEFENSE_HUNTERS = 20;
   // Special nest threat (dragon / naraku) — separate from Lv10 daily ambush
   const SPECIAL_NEST_SHARD_GATE = 6;
@@ -1681,6 +1714,50 @@ html, body {
     toast("欠片が揃いつつある……巣で結末を選べるわ。");
   }
 
+  /** ストーリー／欠片進捗から次の目標文を返す（常時表示用） */
+  function getNextObjective() {
+    const f = state.flags;
+    if (f.ending) return "次：結末を見届けたあと、自由に狩れ";
+    if (!f.nestAwake) return "次：巣で目覚める";
+    if (!f.hairGathered) return "次：黒髪を集める";
+    if (state.nestRaid && state.nestRaid.turnsLeft > 0) {
+      if (state.nestRaid.special) {
+        const kn = state.nestRaid.kind === "naraku" ? "奈落" : "竜";
+        return "次：急いで巣へ戻れ（" + kn + "が魂櫛を襲撃中）";
+      }
+      return "次：急いで巣へ戻れ（奇襲から魂櫛を守れ）";
+    }
+    // 序盤：村Aを初心者の明確な目標に
+    if (!f.villageACleared) return "次：村Aで戦士を討つ";
+    if (!f.villageCleared) return "次：村はずれで戦士を討つ";
+    if (!f.villageBCleared) return "次：村Bを襲う";
+    if (!f.castleCleared) return "次：城を攻める";
+    if (!f.forestCleared) return "次：森の退治屋の陣を討つ";
+    if (!f.inuyashaSlain) return "次：骨喰いの井戸で犬夜叉を狩る";
+    // 本編：欠片狩り
+    if (shardCount() >= SHARD_GOAL) return "次：巣で欠片を完成させ、結末を選べ";
+    const hunt = [
+      [!f.sesshomaruWon, "次：西の峠で殺生丸を狩る"],
+      [!f.kikyoSlain, "次：霧の社で桔梗を仕留める"],
+      [!f.kogaSlain, "次：狼の崖で鋼牙を狩る"],
+      [!f.narakuSlain, "次：影の森で奈落を討つ"],
+      [!f.sangoSlain, "次：退治屋の里で珊瑚たちを狩る"],
+      [!f.mirokuSlain, "次：風穴の辻で弥勒を狩る"],
+      [!f.bankotsuSlain, "次：七人塚で七人隊を屠る"],
+      [!f.kaguraSlain, "次：風の原で神楽を狩る"],
+      [!f.kannaSlain, "次：死鏡の沼で神無を砕く"],
+      [!f.muonnaSlain, "次：母の幻影で無女を狩る"],
+      [!f.hakudoshiSlain, "次：白霊の道で白童子を狩る"],
+      [!f.tokajinSlain, "次：桃果の園で桃果人を狩る"],
+      [!f.kaedeSlain, "次：楓の里で楓を狩る"],
+    ];
+    for (let i = 0; i < hunt.length; i++) {
+      if (hunt[i][0]) return hunt[i][1];
+    }
+    return "次：マップで欠片持ちを狩り、" + shardCount() + "/" + SHARD_GOAL + "を揃えよ";
+  }
+
+
   // ---------- Save / Load ----------
   function saveGame() {
     try {
@@ -1723,11 +1800,22 @@ html, body {
     // Older saves can contain a full EXP bar. Resolve it on load too, so a
     // filled bar can never remain stuck until another battle is won.
     applyLevelUps(out);
+    // 魂櫛：旧セーブの max（多くは300）から現行 MAX_COMB へ比例換算して永続化
+    const prevMaxComb = p && p.maxComb != null ? Number(p.maxComb) : null;
     out.maxComb = MAX_COMB;
-    // 旧セーブは maxComb=1。壊れていなければ全快へ引き上げ。
-    if (out.comb == null || out.comb < 0) out.comb = 0;
-    else if (out.comb > 0 && (p == null || p.maxComb == null || p.maxComb <= 1)) out.comb = MAX_COMB;
-    else if (out.comb > MAX_COMB) out.comb = MAX_COMB;
+    if (out.comb == null || out.comb < 0) {
+      out.comb = 0;
+    } else if (out.comb > 0 && (prevMaxComb == null || !Number.isFinite(prevMaxComb) || prevMaxComb <= 1)) {
+      // 旧セーブは maxComb=1 等：壊れていなければ全快へ
+      out.comb = MAX_COMB;
+    } else if (prevMaxComb && prevMaxComb > MAX_COMB) {
+      out.comb = Math.max(1, Math.round((Number(out.comb) / prevMaxComb) * MAX_COMB));
+      if (out.comb > MAX_COMB) out.comb = MAX_COMB;
+    } else if (out.comb > MAX_COMB) {
+      out.comb = MAX_COMB;
+    } else {
+      out.comb = Math.floor(Number(out.comb)) || 0;
+    }
     delete out.hp; delete out.maxHp; delete out.hair; delete out.maxHair;
     delete out.sword; delete out.maxSword;
     return out;
@@ -1818,6 +1906,11 @@ html, body {
     root.querySelectorAll(".hud-shards").forEach((el) => {
       el.textContent = "欠片 " + (state.flags.shikonShards || 0) + "/" + SHARD_GOAL;
     });
+    // 次の目標（常時）
+    const objText = getNextObjective();
+    root.querySelectorAll(".hud-objective").forEach((el) => {
+      el.textContent = objText;
+    });
 
     // 巣の奇襲／特別脅威バナー
     let banner = root.querySelector(".raid-banner");
@@ -1843,6 +1936,12 @@ html, body {
 
   function refreshAllHuds() {
     $$(".hud").forEach(updateHud);
+    updateExploreObjective();
+  }
+
+  function updateExploreObjective() {
+    const el = document.getElementById("explore-objective");
+    if (el) el.textContent = getNextObjective();
   }
 
   function checkGameOver() {
@@ -4402,6 +4501,56 @@ html, body {
     }
   }
 
+
+  /** 村Aを初心者向けにラベル＋光环で強調（未制圧時は特に目立つ） */
+  function drawVillageAHighlight(ctx, camPx, camPy) {
+    if (!explore || !explore.landmarks) return;
+    let lm = null;
+    for (let i = 0; i < explore.landmarks.length; i++) {
+      if (explore.landmarks[i].ch === "A") {
+        lm = explore.landmarks[i];
+        break;
+      }
+    }
+    if (!lm) return;
+    const cx = lm.x * PX + PX / 2 - camPx;
+    const cy = lm.y * PX + PX / 2 - camPy;
+    const uncleared = !state.flags.villageACleared;
+    const t = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+    const pulse = 0.55 + 0.45 * Math.sin(t * (uncleared ? 3.2 : 1.6));
+    ctx.save();
+    // Glow ring
+    ctx.beginPath();
+    ctx.arc(cx, cy, uncleared ? 18 + pulse * 4 : 14, 0, Math.PI * 2);
+    ctx.strokeStyle = uncleared
+      ? "rgba(255, 210, 64, " + (0.55 + pulse * 0.35).toFixed(2) + ")"
+      : "rgba(255, 220, 120, 0.55)";
+    ctx.lineWidth = uncleared ? 2.5 : 1.5;
+    ctx.stroke();
+    if (uncleared) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, 10 + pulse * 2, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255, 200, 40, " + (0.12 + pulse * 0.1).toFixed(2) + ")";
+      ctx.fill();
+    }
+    // Label plate
+    const label = uncleared ? "村A ←ここ" : "村A";
+    ctx.font = "bold 10px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    const tw = ctx.measureText(label).width;
+    const lx = cx;
+    const ly = cy - (uncleared ? 22 : 18);
+    ctx.fillStyle = "rgba(20, 12, 0, 0.78)";
+    ctx.fillRect(lx - tw / 2 - 4, ly - 11, tw + 8, 13);
+    ctx.strokeStyle = uncleared ? "#ffd24a" : "#c9a227";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(lx - tw / 2 - 4, ly - 11, tw + 8, 13);
+    ctx.fillStyle = uncleared ? "#ffe9a0" : "#f0d78c";
+    ctx.fillText(label, lx, ly);
+    ctx.restore();
+  }
+
     function placeMarker(tiles, x, y, ch) {
     if (y > 0 && y < tiles.length - 1 && x > 0 && x < tiles[0].length - 1) {
       tiles[y][x] = ch;
@@ -5246,6 +5395,8 @@ html, body {
 
     // Landmark illustrations (nest hair-ball, villages, castle, etc.)
     drawLandmarkOverlays(ctx, camPx, camPy);
+    // 初心者向け：村Aを明示
+    drawVillageAHighlight(ctx, camPx, camPy);
 
     // Hair strands (hair barrier mode)
     if (exploreHairMode && exploreHairMode.path && exploreHairMode.path.length) {
@@ -5484,6 +5635,7 @@ html, body {
     if (legend) {
       legend.textContent = EXPLORE_LEGEND[explore.mapId] || EXPLORE_LEGEND.forest;
     }
+    updateExploreObjective();
     updateExploreRaidButton();
     updateExploreNestMenuButton();
     drawExploreCanvas(performance.now());
@@ -5579,12 +5731,13 @@ html, body {
         state.player.clothes = state.player.maxClothes;
         state.player.youriki = state.player.maxYouriki;
         state.player.maxComb = MAX_COMB;
-        state.player.comb = state.player.maxComb;
+        // 魂櫛は休息では回復しない（破損は巣防衛の結果として残る）
+        if (state.player.comb > MAX_COMB) state.player.comb = MAX_COMB;
         state.player.buffAtk = 0;
         state.player.buffTurns = 0;
         state.flags.gameDay = (state.flags.gameDay || 1) + 1;
-        toast("休息した。全回復。（" + state.flags.gameDay + "日目）");
-        setExploreMsg("ベッドで休んだ。服装・妖力・魂櫛が全快。（" + state.flags.gameDay + "日目）");
+        toast("休息した。服装・妖力が回復。（魂櫛は変わらず／" + state.flags.gameDay + "日目）");
+        setExploreMsg("ベッドで休んだ。服装・妖力は全快。魂櫛は休息では治らない。（" + state.flags.gameDay + "日目）");
         refreshAllHuds();
         maybeProgressSpecialNestThreat("rest");
         return true;
@@ -5870,8 +6023,11 @@ html, body {
     const hint = document.createElement("div");
     hint.className = "map-hub-hint";
     hint.innerHTML =
+      "<p class='map-objective'><strong>" +
+      getNextObjective() +
+      "</strong></p>" +
       "<p><strong>移動はマップを歩いて行う。</strong></p>" +
-      "<p>フィールド（森含む）を歩く。黒い髪の玉＝結羅の巣（入るとメニューのみ）。</p>" +
+      "<p>フィールド（森含む）を歩く。黒い髪の玉＝結羅の巣（入るとメニューのみ）。村Aは地図上に「村A」と表示。</p>" +
       "<p>髪の結界は巣メニューから。黒髪をマップ上で伸ばして村を襲え。</p>";
     grid.appendChild(hint);
 
@@ -6213,7 +6369,9 @@ html, body {
       p.atk +
       "　防御 " +
       p.def +
-      (p.buffTurns > 0 ? "\nバフ +" + p.buffAtk + "（残り" + p.buffTurns + "T）" : "");
+      (p.buffTurns > 0 ? "\nバフ +" + p.buffAtk + "（残り" + p.buffTurns + "T）" : "") +
+      "\n\n" +
+      getNextObjective();
     $("#modal-btns").innerHTML = "";
     const b = document.createElement("button");
     b.className = "btn";
@@ -6231,7 +6389,8 @@ html, body {
     state.location = "nest";
     $("#modal-title").textContent = "結羅の巣（黒髪の玉）";
     let nestBody =
-      "魂櫛はここにある（耐久 " +
+      getNextObjective() +
+      "\n\n魂櫛はここにある（耐久 " +
       state.player.comb +
       "/" +
       state.player.maxComb +
@@ -6239,7 +6398,8 @@ html, body {
       shardCount() +
       "/" +
       SHARD_GOAL +
-      "。巣に歩行マップはない——休む・結界・セーブ・結末ができる。";
+      "。巣に歩行マップはない——休む・結界・セーブ・結末ができる。" +
+      "\n※休息では服装・妖力のみ回復。魂櫛は治らない。";
     if (state.flags.specialNestOmen && state.flags.specialNestOmen.kind) {
       const kn = state.flags.specialNestOmen.kind === "naraku" ? "奈落" : "竜";
       nestBody +=
@@ -6267,15 +6427,16 @@ html, body {
       add("黒髪を集める", () => playScene("gather"), "btn-gold");
     }
 
-    add("休息する（ステータス全回復）", () => {
+    add("休息する（服装・妖力回復／魂櫛は不可）", () => {
       state.player.clothes = state.player.maxClothes;
       state.player.youriki = state.player.maxYouriki;
       state.player.maxComb = MAX_COMB;
-      state.player.comb = state.player.maxComb;
+      // 魂櫛は休息では回復しない
+      if (state.player.comb > MAX_COMB) state.player.comb = MAX_COMB;
       state.player.buffAtk = 0;
       state.player.buffTurns = 0;
       state.flags.gameDay = (state.flags.gameDay || 1) + 1;
-      toast("休息した。服装・妖力・魂櫛が全回復した。（" + state.flags.gameDay + "日目）");
+      toast("休息した。服装・妖力が回復した。（魂櫛は変わらず／" + state.flags.gameDay + "日目）");
       refreshAllHuds();
       // Midgame special nest threat: day advance may bring omen or raid
       const omenBefore = !!(state.flags.specialNestOmen);
@@ -7159,8 +7320,9 @@ html, body {
       }
       let hitComb = defendingNest && Math.random() < combFocus;
       if (hitComb) {
-        let cDmg = Math.max(1, Math.round(p.maxComb / 25)); // ~12 when max=300
-        if (specialDef && e.isBoss) cDmg = Math.max(cDmg, Math.round(p.maxComb / 18)); // ~16
+        // Scaled for MAX_COMB=10（旧max=300時は約12／特別ボス約16）
+        let cDmg = 1;
+        if (specialDef && e.isBoss) cDmg = 2;
         p.comb = clamp(p.comb - cDmg, 0, p.maxComb);
         addLog(
           e.name +
