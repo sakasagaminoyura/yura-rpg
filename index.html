@@ -1787,9 +1787,16 @@ html, body {
   const SHARD_GOAL = 12;
 
   function grantShards(n, label) {
-    const add = Math.max(0, n | 0);
-    if (!add) return;
-    state.flags.shikonShards = (state.flags.shikonShards || 0) + add;
+    const want = Math.max(0, n | 0);
+    if (!want) return;
+    const cur = state.flags.shikonShards || 0;
+    if (cur >= SHARD_GOAL) {
+      toast("四魂の玉の欠片は既に揃っている（" + SHARD_GOAL + "/" + SHARD_GOAL + "）");
+      refreshAllHuds();
+      return;
+    }
+    const add = Math.min(want, SHARD_GOAL - cur);
+    state.flags.shikonShards = cur + add;
     state.flags.shikonShardsTaken = true;
     const msg =
       "四魂の玉の欠片×" +
@@ -1806,6 +1813,34 @@ html, body {
 
   function shardCount() {
     return state.flags.shikonShards || 0;
+  }
+
+  /** 欠片狩りボス地点 → 討伐フラグ。12/12後は未討伐でも戦闘不可。 */
+  const SHARD_HUNT_BOSS_FLAGS = {
+    pass: "sesshomaruWon",
+    shrine: "kikyoSlain",
+    cliff: "kogaSlain",
+    shadow: "narakuSlain",
+    slayer: "sangoSlain",
+    monkpath: "mirokuSlain",
+    tomb: "bankotsuSlain",
+    windfield: "kaguraSlain",
+    mirror: "kannaSlain",
+    mother: "muonnaSlain",
+    whitepath: "hakudoshiSlain",
+    orchard: "tokajinSlain",
+    kaede: "kaedeSlain",
+  };
+
+  /** @returns {boolean} true if visit was gated (caller should return). */
+  function gateShardHuntBossIfComplete(id) {
+    const flag = SHARD_HUNT_BOSS_FLAGS[id];
+    if (!flag) return false;
+    if (state.flags[flag]) return false; // slain path handles rematch/toast
+    if (shardCount() < SHARD_GOAL) return false;
+    toast("欠片は既に揃った（" + SHARD_GOAL + "/" + SHARD_GOAL + "）。残る獲物はもう要らない——巣で完成させよ。");
+    enterExplore("overworld", { from: id, skipWalkIntro: true });
+    return true;
   }
 
   function maybeOfferShardEnding() {
@@ -2008,6 +2043,9 @@ html, body {
     if (state.flags.shikonShards == null) {
       state.flags.shikonShards = state.flags.shikonShardsTaken ? 2 : 0;
     }
+    if ((state.flags.shikonShards || 0) > SHARD_GOAL) {
+      state.flags.shikonShards = SHARD_GOAL;
+    }
     if (state.flags.shardHunt == null) {
       state.flags.shardHunt = !!state.flags.inuyashaSlain;
     }
@@ -2083,8 +2121,14 @@ html, body {
     root.querySelectorAll(".hud-spd").forEach((el) => (el.textContent = "素早さ " + (p.spd != null ? p.spd : BASE_SPD)));
 
     setBar(".bar-youriki", p.youriki, p.maxYouriki);
-    // 魂櫛は巣穴に隠している。フィールドでは耐久を表示しない（0 / 巣穴）
-    const combHere = state.location === "nest";
+    // 魂櫛は巣穴に隠している。フィールドでは耐久を表示しない（0 / 巣穴）。
+    // 戦闘HUDだけは耐久数値を出す（「巣穴」ラベルは誤表示）。
+    const combatHud =
+      !!(root.parentElement && root.parentElement.id === "screen-combat");
+    const combHere =
+      state.location === "nest" ||
+      combatHud ||
+      !!(combat && (combat.nestDefense || combat.remoteHair));
     const combRow = root.querySelector(".bar-comb");
     if (combRow) {
       if (combHere) {
@@ -6526,6 +6570,7 @@ html, body {
       return;
     }
     if (id === "pass") {
+      if (gateShardHuntBossIfComplete("pass")) return;
       if (!state.flags.sesshomaruWon) {
         playScene(state.flags.sesshomaruMet ? "sesshomaru_duel_offer" : "sesshomaru_intro");
       } else {
@@ -6535,6 +6580,7 @@ html, body {
       return;
     }
     if (id === "shrine") {
+      if (gateShardHuntBossIfComplete("shrine")) return;
       if (!state.flags.kikyoSlain) {
         playScene("kikyo_intro");
       } else {
@@ -6544,6 +6590,7 @@ html, body {
       return;
     }
     if (id === "cliff") {
+      if (gateShardHuntBossIfComplete("cliff")) return;
       if (!state.flags.kogaSlain) {
         playScene("koga_intro");
       } else {
@@ -6553,6 +6600,7 @@ html, body {
       return;
     }
     if (id === "shadow") {
+      if (gateShardHuntBossIfComplete("shadow")) return;
       if (!state.flags.narakuSlain) {
         playScene("naraku_intro");
       } else {
@@ -6562,6 +6610,7 @@ html, body {
       return;
     }
     if (id === "slayer") {
+      if (gateShardHuntBossIfComplete("slayer")) return;
       if (!state.flags.sangoSlain) playScene("slayer_intro");
       else {
         toast("退治屋の里は焼け落ちた。");
@@ -6570,6 +6619,7 @@ html, body {
       return;
     }
     if (id === "monkpath") {
+      if (gateShardHuntBossIfComplete("monkpath")) return;
       if (!state.flags.mirokuSlain) playScene("monkpath_intro");
       else {
         toast("風穴の辻は静まり返っている。");
@@ -6578,6 +6628,7 @@ html, body {
       return;
     }
     if (id === "tomb") {
+      if (gateShardHuntBossIfComplete("tomb")) return;
       if (!state.flags.bankotsuSlain) playScene("tomb_intro");
       else {
         toast("七人塚……亡霊は骨に戻った。");
@@ -6586,6 +6637,7 @@ html, body {
       return;
     }
     if (id === "windfield") {
+      if (gateShardHuntBossIfComplete("windfield")) return;
       if (!state.flags.kaguraSlain) playScene("windfield_intro");
       else {
         toast("風の原……神楽は消えた。");
@@ -6594,6 +6646,7 @@ html, body {
       return;
     }
     if (id === "mirror") {
+      if (gateShardHuntBossIfComplete("mirror")) return;
       if (!state.flags.kannaSlain) playScene("mirror_intro");
       else {
         toast("死鏡の沼……神無は砕けた。");
@@ -6602,6 +6655,7 @@ html, body {
       return;
     }
     if (id === "mother") {
+      if (gateShardHuntBossIfComplete("mother")) return;
       if (!state.flags.muonnaSlain) playScene("mother_intro");
       else {
         toast("母の幻影は散った。");
@@ -6610,6 +6664,7 @@ html, body {
       return;
     }
     if (id === "whitepath") {
+      if (gateShardHuntBossIfComplete("whitepath")) return;
       if (!state.flags.hakudoshiSlain) playScene("whitepath_intro");
       else {
         toast("白霊の道……白童子は消えた。");
@@ -6618,6 +6673,7 @@ html, body {
       return;
     }
     if (id === "orchard") {
+      if (gateShardHuntBossIfComplete("orchard")) return;
       if (!state.flags.tokajinSlain) playScene("orchard_intro");
       else {
         toast("桃果の園は枯れ果てた。");
@@ -6626,6 +6682,7 @@ html, body {
       return;
     }
     if (id === "kaede") {
+      if (gateShardHuntBossIfComplete("kaede")) return;
       if (!state.flags.kaedeSlain) playScene("kaede_intro");
       else {
         toast("楓の里は沈黙している。");
@@ -7436,9 +7493,10 @@ html, body {
           (p.def != null ? p.def : BASE_DEF) +
           "　素早さ" +
           (p.spd != null ? p.spd : BASE_SPD)) +
-      (combat.nestDefense || state.location === "nest" || combat.remoteHair
-        ? "　魂櫛 " + p.comb + "/" + p.maxComb
-        : "　魂櫛 巣穴") +
+      "　魂櫛 " +
+      p.comb +
+      "/" +
+      p.maxComb +
       "</div></div>";
 
     // enemies
