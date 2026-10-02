@@ -4306,11 +4306,17 @@ html, body {
         }
       }
     };
+    // 3-wide corridor so walking between landmarks is not maze-like
+    const stamp = (px, py) => {
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (Math.abs(dx) + Math.abs(dy) <= 2) set(px + dx, py + dy);
+        }
+      }
+    };
     let step = 0;
     while (x !== x1 || y !== y1) {
-      set(x, y);
-      set(x + 1, y);
-      set(x, y + 1);
+      stamp(x, y);
       // Deterministic L-ish path with mild zig based on coordinates
       const preferX = (step % 3 !== 2) || y === y1;
       if (x !== x1 && (y === y1 || preferX)) x += x < x1 ? 1 : -1;
@@ -4318,7 +4324,7 @@ html, body {
       step++;
       if (step > 4000) break;
     }
-    set(x1, y1);
+    stamp(x1, y1);
   }
 
   // Multi-tile landmark footprints (interaction hitboxes). Visuals use illustration overlays.
@@ -4579,8 +4585,8 @@ html, body {
       if (y < minY) minY = y;
       if (y > maxY) maxY = y;
     }
-    for (let y = minY - 1; y <= maxY + 1; y++) {
-      for (let x = minX - 1; x <= maxX + 1; x++) {
+    for (let y = minY - 2; y <= maxY + 2; y++) {
+      for (let x = minX - 2; x <= maxX + 2; x++) {
         if (y <= 0 || x <= 0 || y >= h - 1 || x >= w - 1) continue;
         if (tiles[y][x] === "#" || tiles[y][x] === "g") tiles[y][x] = ".";
       }
@@ -4607,74 +4613,84 @@ html, body {
       for (let x = 0; x < W; x++) {
         if (y === 0 || x === 0 || y === H - 1 || x === W - 1) row.push("#");
         else {
-          // default: mix of grass / wall clumps
+          // Lower wall density (~10%) — keep light structure, open travel
           const n = (x * 17 + y * 31) % 100;
-          if (n < 18) row.push("#");
-          else if (n < 72) row.push("g");
+          if (n < 10) row.push("#");
+          else if (n < 68) row.push("g");
           else row.push(".");
         }
       }
       tiles.push(row);
     }
-    // lakes
-    fillRectTiles(tiles, 20, 14, 26, 18, "~");
-    fillRectTiles(tiles, 34, 24, 38, 28, "~");
-    // clear nest clearing + roads
-    fillRectTiles(tiles, 2, 2, 8, 7, ".");
-    fillRectTiles(tiles, 10, 4, 18, 6, ".");
-    // deep woods belt (former separate forest map) — denser grass/trees around F
-    fillRectTiles(tiles, 16, 12, 28, 22, "g");
-    fillRectTiles(tiles, 18, 14, 20, 15, "#");
-    fillRectTiles(tiles, 24, 18, 26, 19, "#");
-    // landmarks (center x,y) — multi-tile footprints
-    // F = forest hunter camp (not a map portal)
+    // Small lakes parked off the story spine (do not softlock roads)
+    fillRectTiles(tiles, 31, 17, 34, 19, "~");
+    fillRectTiles(tiles, 41, 24, 44, 27, "~");
+    // Nest clearing + early open approaches
+    fillRectTiles(tiles, 2, 2, 10, 9, ".");
+    fillRectTiles(tiles, 10, 5, 20, 9, ".");
+    // Soft woods belt around forest camp (no dense wall clumps)
+    fillRectTiles(tiles, 18, 12, 28, 20, "g");
+    // Mid clearings so village→forest→castle walking stays readable
+    fillRectTiles(tiles, 12, 14, 18, 18, ".");
+    fillRectTiles(tiles, 24, 10, 32, 14, ".");
+    // Landmarks in story / next-objective progression from nest:
+    // Early (near nest): A → V → B → F → O
+    // Mid: C → W → G / J / K
+    // Late (farther): P → Q → S → U / L → T → D → Y → E → H
     const marks = {
       N: [5, 4, "nest"],
-      V: [12, 8, "village"],
-      A: [28, 7, "village"],
-      B: [8, 22, "village"],
-      F: [22, 16, "forest"],
-      C: [40, 20, "castle"],
-      P: [42, 5, "pass"],
-      S: [40, 12, "shrine"],
-      L: [10, 30, "cliff"],
-      D: [24, 30, "shadow"],
-      W: [34, 22, "well"],
-      H: [42, 32, "hill"],
-      T: [16, 26, "village"], // 退治屋の里
-      G: [30, 14, "pass"], // 風穴の辻
-      E: [36, 30, "shadow"], // 七人塚
+      A: [11, 7, "village"], // 村A — first hunt, near nest/path
+      V: [17, 9, "village"], // 村はずれ — next
+      B: [14, 17, "village"], // 村B
+      F: [22, 15, "forest"], // 森の退治屋陣
+      O: [7, 24, "forest"], // 桃果の園
+      C: [30, 11, "castle"], // 城
+      J: [20, 11, "well"], // 死鏡の沼
+      W: [28, 20, "well"], // 骨喰いの井戸
+      G: [24, 22, "pass"], // 風穴の辻
       K: [6, 14, "hill"], // 風の原
-      J: [18, 10, "well"], // 死鏡の沼
-      U: [44, 14, "shrine"], // 母の幻影
-      Y: [32, 28, "pass"], // 白霊の道
-      O: [4, 26, "forest"], // 桃果の園
-      Q: [36, 8, "village"], // 楓の里
+      P: [40, 6, "pass"], // 西の峠
+      Q: [36, 10, "village"], // 楓の里
+      S: [42, 14, "shrine"], // 霧の社
+      U: [44, 20, "shrine"], // 母の幻影
+      L: [12, 30, "cliff"], // 狼の崖
+      T: [18, 28, "village"], // 退治屋の里
+      D: [26, 30, "shadow"], // 影の森
+      Y: [34, 26, "pass"], // 白霊の道
+      E: [38, 30, "shadow"], // 七人塚
+      H: [42, 32, "hill"], // 決戦の丘
     };
-    carvePath(tiles, 5, 4, 12, 8, ".");
-    carvePath(tiles, 12, 8, 28, 7, ".");
-    carvePath(tiles, 12, 8, 8, 22, ".");
-    carvePath(tiles, 12, 8, 22, 16, ".");
-    carvePath(tiles, 22, 16, 40, 20, ".");
-    carvePath(tiles, 22, 16, 5, 4, ".");
-    carvePath(tiles, 28, 7, 42, 5, ".");
-    carvePath(tiles, 40, 20, 40, 12, ".");
-    carvePath(tiles, 40, 20, 34, 22, ".");
-    carvePath(tiles, 8, 22, 10, 30, ".");
-    carvePath(tiles, 22, 16, 24, 30, ".");
-    carvePath(tiles, 34, 22, 42, 32, ".");
-    carvePath(tiles, 10, 30, 24, 30, ".");
-    carvePath(tiles, 8, 22, 16, 26, ".");
-    carvePath(tiles, 22, 16, 30, 14, ".");
-    carvePath(tiles, 24, 30, 36, 30, ".");
+    // Wide roads along progression spine + spokes (no softlocks)
+    carvePath(tiles, 5, 4, 11, 7, ".");
+    carvePath(tiles, 11, 7, 17, 9, ".");
+    carvePath(tiles, 17, 9, 14, 17, ".");
+    carvePath(tiles, 17, 9, 22, 15, ".");
+    carvePath(tiles, 14, 17, 22, 15, ".");
+    carvePath(tiles, 22, 15, 30, 11, ".");
+    carvePath(tiles, 30, 11, 28, 20, ".");
+    carvePath(tiles, 22, 15, 28, 20, ".");
+    carvePath(tiles, 28, 20, 24, 22, ".");
     carvePath(tiles, 5, 4, 6, 14, ".");
-    carvePath(tiles, 12, 8, 18, 10, ".");
-    carvePath(tiles, 42, 5, 44, 14, ".");
-    carvePath(tiles, 34, 22, 32, 28, ".");
-    carvePath(tiles, 8, 22, 4, 26, ".");
-    carvePath(tiles, 28, 7, 36, 8, ".");
-    // expand nest clearing for the hair-ball circle
-    fillRectTiles(tiles, 2, 2, 9, 8, ".");
+    carvePath(tiles, 14, 17, 7, 24, ".");
+    carvePath(tiles, 17, 9, 20, 11, ".");
+    carvePath(tiles, 22, 15, 20, 11, ".");
+    carvePath(tiles, 30, 11, 40, 6, ".");
+    carvePath(tiles, 40, 6, 36, 10, ".");
+    carvePath(tiles, 36, 10, 42, 14, ".");
+    carvePath(tiles, 42, 14, 44, 20, ".");
+    carvePath(tiles, 30, 11, 42, 14, ".");
+    carvePath(tiles, 14, 17, 12, 30, ".");
+    carvePath(tiles, 22, 15, 18, 28, ".");
+    carvePath(tiles, 12, 30, 18, 28, ".");
+    carvePath(tiles, 18, 28, 26, 30, ".");
+    carvePath(tiles, 26, 30, 38, 30, ".");
+    carvePath(tiles, 28, 20, 34, 26, ".");
+    carvePath(tiles, 34, 26, 38, 30, ".");
+    carvePath(tiles, 34, 26, 42, 32, ".");
+    carvePath(tiles, 24, 22, 34, 26, ".");
+    carvePath(tiles, 44, 20, 42, 32, ".");
+    // Re-open nest clearing after roads
+    fillRectTiles(tiles, 2, 2, 10, 9, ".");
     const landmarks = [];
     for (const [ch, pos] of Object.entries(marks)) {
       placeLandmark(tiles, pos[0], pos[1], ch, pos[2]);
@@ -4693,27 +4709,27 @@ html, body {
         // south of nest circle (not on N tiles)
         default: [5, 7],
         nest: [5, 7],
-        forest: [22, 19], // deep woods / hunter camp approach
-        village: [12, 10],
-        villageA: [28, 9],
-        villageB: [8, 24],
-        castle: [40, 22],
-        pass: [40, 5],
-        shrine: [40, 14],
-        cliff: [10, 28],
-        shadow: [24, 28],
-        well: [32, 22],
+        forest: [22, 17],
+        village: [17, 11],
+        villageA: [11, 9],
+        villageB: [14, 19],
+        castle: [30, 13],
+        pass: [38, 6],
+        shrine: [42, 16],
+        cliff: [12, 28],
+        shadow: [26, 28],
+        well: [28, 22],
         hill: [42, 30],
-        slayer: [16, 24],
-        monkpath: [30, 16],
-        tomb: [36, 28],
+        slayer: [18, 26],
+        monkpath: [24, 24],
+        tomb: [38, 28],
         windfield: [6, 16],
-        mirror: [18, 12],
-        mother: [42, 14],
-        whitepath: [32, 26],
-        orchard: [4, 24],
-        kaede: [36, 10],
-        map: [22, 19],
+        mirror: [20, 13],
+        mother: [42, 20],
+        whitepath: [34, 24],
+        orchard: [7, 22],
+        kaede: [36, 12],
+        map: [22, 17],
         overworld: [5, 7],
       },
       blockMsg: "行けない……",
@@ -4730,8 +4746,8 @@ html, body {
         if (y === 0 || x === 0 || y === H - 1 || x === W - 1) row.push("#");
         else {
           const n = (x * 13 + y * 29) % 100;
-          if (n < 28) row.push("#");
-          else if (n < 78) row.push("g");
+          if (n < 12) row.push("#");
+          else if (n < 72) row.push("g");
           else row.push(".");
         }
       }
