@@ -591,7 +591,7 @@ html, body {
   flex-wrap: wrap;
 }
 .bar-combat-stats .stat-label { min-width: 2.5em; }
-.hud-atk, .hud-def {
+.hud-atk, .hud-def, .hud-spd {
   font-size: 0.8rem;
   color: var(--gold);
   letter-spacing: 0.04em;
@@ -863,7 +863,7 @@ html, body {
           <div class="hud-name"><span class="hud-name-text">結羅</span><span class="hud-level">LV 1</span></div>
           <div class="stat-row bar-clothes"><span class="stat-label">服装</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">100/100</span></div>
           <div class="stat-row bar-youriki"><span class="stat-label">妖力</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">60/100</span></div>
-          <div class="stat-row bar-combat-stats"><span class="stat-label">能力</span><span class="hud-atk">攻撃 12</span><span class="hud-def">防御 4</span></div>
+          <div class="stat-row bar-combat-stats"><span class="stat-label">能力</span><span class="hud-atk">攻撃 12</span><span class="hud-def">防御 4</span><span class="hud-spd">素早さ 10</span></div>
           <div class="stat-row"><span class="stat-label">四魂</span><span class="hud-shards">欠片 0/12</span></div>
           <div class="stat-row bar-comb"><span class="stat-label">魂櫛</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">10/10</span></div>
           <div class="stat-row"><span class="stat-label">目標</span><span class="hud-objective">次：巣で目覚める</span></div>
@@ -892,7 +892,7 @@ html, body {
           <div class="hud-name"><span class="hud-name-text">結羅</span><span class="hud-level">LV 1</span></div>
           <div class="stat-row bar-clothes"><span class="stat-label">服装</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">100/100</span></div>
           <div class="stat-row bar-youriki"><span class="stat-label">妖力</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">60/100</span></div>
-          <div class="stat-row bar-combat-stats"><span class="stat-label">能力</span><span class="hud-atk">攻撃 12</span><span class="hud-def">防御 4</span></div>
+          <div class="stat-row bar-combat-stats"><span class="stat-label">能力</span><span class="hud-atk">攻撃 12</span><span class="hud-def">防御 4</span><span class="hud-spd">素早さ 10</span></div>
           <div class="stat-row"><span class="stat-label">四魂</span><span class="hud-shards">欠片 0/12</span></div>
           <div class="stat-row bar-comb"><span class="stat-label">魂櫛</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">10/10</span></div>
           <div class="stat-row"><span class="stat-label">目標</span><span class="hud-objective">次：巣で目覚める</span></div>
@@ -919,7 +919,7 @@ html, body {
           <div class="hud-name"><span class="hud-name-text">結羅</span><span class="hud-level">LV 1</span></div>
           <div class="stat-row bar-clothes"><span class="stat-label">服装</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">100/100</span></div>
           <div class="stat-row bar-youriki"><span class="stat-label">妖力</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">60/100</span></div>
-          <div class="stat-row bar-combat-stats"><span class="stat-label">能力</span><span class="hud-atk">攻撃 12</span><span class="hud-def">防御 4</span></div>
+          <div class="stat-row bar-combat-stats"><span class="stat-label">能力</span><span class="hud-atk">攻撃 12</span><span class="hud-def">防御 4</span><span class="hud-spd">素早さ 10</span></div>
           <div class="stat-row"><span class="stat-label">四魂</span><span class="hud-shards">欠片 0/12</span></div>
           <div class="stat-row bar-comb"><span class="stat-label">魂櫛</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">10/10</span></div>
           <div class="stat-row"><span class="stat-label">目標</span><span class="hud-objective">次：巣で目覚める</span></div>
@@ -945,7 +945,7 @@ html, body {
           <div class="hud-name"><span class="hud-name-text">結羅</span><span class="hud-level">LV 1</span></div>
           <div class="stat-row bar-clothes"><span class="stat-label">服装</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">100/100</span></div>
           <div class="stat-row bar-youriki"><span class="stat-label">妖力</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">60/100</span></div>
-          <div class="stat-row bar-combat-stats"><span class="stat-label">能力</span><span class="hud-atk">攻撃 12</span><span class="hud-def">防御 4</span></div>
+          <div class="stat-row bar-combat-stats"><span class="stat-label">能力</span><span class="hud-atk">攻撃 12</span><span class="hud-def">防御 4</span><span class="hud-spd">素早さ 10</span></div>
           <div class="stat-row"><span class="stat-label">四魂</span><span class="hud-shards">欠片 0/12</span></div>
           <div class="stat-row bar-comb"><span class="stat-label">魂櫛</span><div class="bar"><div class="bar-fill"></div></div><span class="stat-val">10/10</span></div>
           <div class="stat-row"><span class="stat-label">目標</span><span class="hud-objective">次：巣で目覚める</span></div>
@@ -1142,6 +1142,8 @@ html, body {
   const LEVEL_DEF_GROWTH = 1;
   const BASE_ATK = 12;
   const BASE_DEF = 4;
+  const BASE_SPD = 10;
+  const LEVEL_SPD_GROWTH = 1; // 素早さはレベルで緩やかに上昇
 
   function expToNextLevel(level) {
     return Math.max(EXP_PER_LEVEL, level * EXP_PER_LEVEL);
@@ -1164,6 +1166,7 @@ html, body {
       p.maxYouriki += LEVEL_YOURIKI_GROWTH;
       p.atk = (p.atk || BASE_ATK) + LEVEL_ATK_GROWTH;
       p.def = (p.def || BASE_DEF) + LEVEL_DEF_GROWTH;
+      p.spd = (p.spd || BASE_SPD) + LEVEL_SPD_GROWTH;
       p.clothes = clamp(p.clothes + LEVEL_CLOTHES_REFILL, 0, p.maxClothes);
       p.youriki = clamp(p.youriki + LEVEL_YOURIKI_REFILL, 0, p.maxYouriki);
     }
@@ -1179,6 +1182,7 @@ html, body {
       hp: tmpl.hp,
       atk: tmpl.atk,
       def: tmpl.def || 0,
+      spd: tmpl.spd != null ? tmpl.spd : 8,
       icon: tmpl.icon || "⚔️",
       bound: 0,
       dead: false,
@@ -1204,17 +1208,18 @@ html, body {
   }
 
   const ENEMY_TMPL = {
-    civilian: { id: "civilian", name: "村人", hp: 8, atk: 1, def: 1, icon: "👤" },
-    villager: { id: "villager", name: "村人戦士", hp: 45, atk: 10, def: 2, icon: "🗡️" },
-    hunter: { id: "hunter", name: "妖怪退治屋", hp: 60, atk: 14, def: 3, icon: "🏹" },
-    monk: { id: "monk", name: "法師", hp: 50, atk: 12, def: 4, icon: "📿" },
-    wolf: { id: "wolf", name: "野犬の化生", hp: 55, atk: 16, def: 2, icon: "🐺" },
+    civilian: { id: "civilian", name: "村人", hp: 8, atk: 1, def: 1, spd: 4, icon: "👤" },
+    villager: { id: "villager", name: "村人戦士", hp: 45, atk: 10, def: 2, spd: 8, icon: "🗡️" },
+    hunter: { id: "hunter", name: "妖怪退治屋", hp: 60, atk: 14, def: 3, spd: 9, icon: "🏹" },
+    monk: { id: "monk", name: "法師", hp: 50, atk: 12, def: 4, spd: 7, icon: "📿" },
+    wolf: { id: "wolf", name: "野犬の化生", hp: 55, atk: 16, def: 2, spd: 14, icon: "🐺" },
     inuyasha: {
       id: "inuyasha",
       name: "犬夜叉",
       hp: 120,
       atk: 22,
       def: 6,
+      spd: 16,
       icon: "🐕",
       isBoss: true,
     },
@@ -1224,6 +1229,7 @@ html, body {
       hp: 70,
       atk: 14,
       def: 3,
+      spd: 12,
       icon: "🏹",
       isBoss: true,
     },
@@ -1233,6 +1239,7 @@ html, body {
       hp: 28,
       atk: 8,
       def: 1,
+      spd: 8,
       icon: "👹",
     },
     dragon: {
@@ -1241,6 +1248,7 @@ html, body {
       hp: 520,
       atk: 48,
       def: 22,
+      spd: 18,
       icon: "🐲",
       isBoss: true,
       level: 45,
@@ -1251,6 +1259,7 @@ html, body {
       hp: 320,
       atk: 30,
       def: 14,
+      spd: 18,
       icon: "🐉",
       isBoss: true,
     },
@@ -1260,6 +1269,7 @@ html, body {
       hp: 140,
       atk: 24,
       def: 7,
+      spd: 20,
       icon: "🐺",
       isBoss: true,
     },
@@ -1269,6 +1279,7 @@ html, body {
       hp: 110,
       atk: 20,
       def: 8,
+      spd: 11,
       icon: "🏹",
       isBoss: true,
     },
@@ -1278,6 +1289,7 @@ html, body {
       hp: 200,
       atk: 26,
       def: 10,
+      spd: 13,
       icon: "🕷️",
       isBoss: true,
     },
@@ -1287,6 +1299,7 @@ html, body {
       hp: 115,
       atk: 18,
       def: 6,
+      spd: 10,
       icon: "📿",
       isBoss: true,
     },
@@ -1296,6 +1309,7 @@ html, body {
       hp: 130,
       atk: 22,
       def: 7,
+      spd: 12,
       icon: "🪃",
       isBoss: true,
     },
@@ -1305,6 +1319,7 @@ html, body {
       hp: 55,
       atk: 12,
       def: 3,
+      spd: 15,
       icon: "🦊",
       isBoss: true,
     },
@@ -1314,6 +1329,7 @@ html, body {
       hp: 95,
       atk: 17,
       def: 5,
+      spd: 14,
       icon: "⛓️",
       isBoss: true,
     },
@@ -1323,6 +1339,7 @@ html, body {
       hp: 125,
       atk: 23,
       def: 6,
+      spd: 17,
       icon: "💨",
       isBoss: true,
     },
@@ -1332,6 +1349,7 @@ html, body {
       hp: 100,
       atk: 16,
       def: 9,
+      spd: 9,
       icon: "🪞",
       isBoss: true,
     },
@@ -1341,6 +1359,7 @@ html, body {
       hp: 90,
       atk: 15,
       def: 5,
+      spd: 10,
       icon: "👻",
       isBoss: true,
     },
@@ -1350,6 +1369,7 @@ html, body {
       hp: 160,
       atk: 25,
       def: 11,
+      spd: 14,
       icon: "👦",
       isBoss: true,
     },
@@ -1359,6 +1379,7 @@ html, body {
       hp: 180,
       atk: 28,
       def: 10,
+      spd: 12,
       icon: "⚔️",
       isBoss: true,
     },
@@ -1368,6 +1389,7 @@ html, body {
       hp: 110,
       atk: 20,
       def: 6,
+      spd: 11,
       icon: "🔥",
       isBoss: true,
     },
@@ -1377,6 +1399,7 @@ html, body {
       hp: 105,
       atk: 21,
       def: 5,
+      spd: 15,
       icon: "🐍",
       isBoss: true,
     },
@@ -1386,6 +1409,7 @@ html, body {
       hp: 120,
       atk: 22,
       def: 7,
+      spd: 11,
       icon: "💀",
       isBoss: true,
     },
@@ -1395,6 +1419,7 @@ html, body {
       hp: 140,
       atk: 24,
       def: 12,
+      spd: 8,
       icon: "⚙️",
       isBoss: true,
     },
@@ -1404,6 +1429,7 @@ html, body {
       hp: 85,
       atk: 19,
       def: 4,
+      spd: 10,
       icon: "☠️",
       isBoss: true,
     },
@@ -1413,6 +1439,7 @@ html, body {
       hp: 200,
       atk: 26,
       def: 8,
+      spd: 9,
       icon: "👹",
       isBoss: true,
     },
@@ -1422,6 +1449,7 @@ html, body {
       hp: 70,
       atk: 14,
       def: 5,
+      spd: 6,
       icon: "🍁",
       isBoss: true,
     },
@@ -1431,6 +1459,7 @@ html, body {
       hp: 150,
       atk: 21,
       def: 14,
+      spd: 7,
       icon: "🍑",
       isBoss: true,
     },
@@ -1440,6 +1469,7 @@ html, body {
       hp: 40,
       atk: 4,
       def: 1,
+      spd: 8,
       icon: "👧",
       isBoss: true,
     },
@@ -1449,6 +1479,7 @@ html, body {
       hp: 50,
       atk: 14,
       def: 3,
+      spd: 9,
       icon: "🔥",
       isBoss: true,
     },
@@ -1458,6 +1489,7 @@ html, body {
       hp: 25,
       atk: 6,
       def: 1,
+      spd: 16,
       icon: "🪲",
       isBoss: true,
     },
@@ -1467,6 +1499,7 @@ html, body {
       hp: 90,
       atk: 18,
       def: 6,
+      spd: 15,
       icon: "🐱",
       isBoss: true,
     },
@@ -1677,6 +1710,7 @@ html, body {
         comb: MAX_COMB, // 魂櫛（0で真のゲームオーバー／巣防衛敗北）
         atk: BASE_ATK,
         def: BASE_DEF,
+        spd: BASE_SPD,
         buffAtk: 0,
         buffTurns: 0,
       },
@@ -1927,6 +1961,11 @@ html, body {
     } else {
       out.def = Math.max(0, Math.floor(Number(p.def)));
     }
+    if (p == null || p.spd == null || !Number.isFinite(Number(p.spd))) {
+      out.spd = BASE_SPD + Math.max(0, out.level - 1) * LEVEL_SPD_GROWTH;
+    } else {
+      out.spd = Math.max(1, Math.floor(Number(p.spd)));
+    }
     // Older saves can contain a full EXP bar. Resolve it on load too, so a
     // filled bar can never remain stuck until another battle is won.
     applyLevelUps(out);
@@ -2041,6 +2080,7 @@ html, body {
     setBar(".bar-clothes", p.clothes, p.maxClothes);
     root.querySelectorAll(".hud-atk").forEach((el) => (el.textContent = "攻撃 " + (p.atk != null ? p.atk : BASE_ATK)));
     root.querySelectorAll(".hud-def").forEach((el) => (el.textContent = "防御 " + (p.def != null ? p.def : BASE_DEF)));
+    root.querySelectorAll(".hud-spd").forEach((el) => (el.textContent = "素早さ " + (p.spd != null ? p.spd : BASE_SPD)));
 
     setBar(".bar-youriki", p.youriki, p.maxYouriki);
     // 魂櫛は巣穴に隠している。フィールドでは耐久を表示しない（0 / 巣穴）
@@ -2623,6 +2663,11 @@ html, body {
           {
             speaker: "結羅",
             text: "あたしの本体は、魂櫛。魂櫛は巣穴に隠しておかないとね。外へは出さない。ふふ、魂櫛が無事である限り、あたしは不死身なのよ。……でも、巣を留守にすれば、魂の器が狙われるわ。",
+            img: ASSETS.dialogue,
+          },
+          {
+            speaker: "結羅",
+            text: "服の傷がHP代わりよ。0でも死なない——恥じて巣へ逃げるだけ。死ぬのは魂櫛が砕けたとき。普通のRPGとは違うの。",
             img: ASSETS.dialogue,
           },
           {
@@ -6247,13 +6292,11 @@ html, body {
     setExploreMsg(encMsg);
     toast(toastMsg);
     // いきなり戦闘画面に飛ばず、遭遇表示のあと押してから戦闘へ
+    // 野良遭遇のみ「回避」可（名前有り／村／ボス戦には出さない）
     $("#modal-title").textContent = "遭遇";
     $("#modal-body").textContent = encMsg;
     $("#modal-btns").innerHTML = "";
-    const go = document.createElement("button");
-    go.className = "btn btn-gold";
-    go.textContent = "戦闘へ";
-    go.onclick = () => {
+    const startWildFight = () => {
       hideModal();
       beginCombat(foes, () => {
         state.flags.battlesWon++;
@@ -6262,7 +6305,28 @@ html, body {
         resumeExplore(winMsg);
       });
     };
+    const go = document.createElement("button");
+    go.className = "btn btn-gold";
+    go.textContent = "戦闘へ";
+    go.onclick = () => startWildFight();
+    const evadeBtn = document.createElement("button");
+    evadeBtn.className = "btn";
+    evadeBtn.textContent = "回避";
+    evadeBtn.onclick = () => {
+      const pSpd = state.player.spd != null ? state.player.spd : BASE_SPD;
+      const maxFoeSpd = foes.reduce((m, e) => Math.max(m, e.spd != null ? e.spd : 8), 0);
+      if (pSpd > maxFoeSpd) {
+        hideModal();
+        if (explore) explore.encounterLock = false;
+        toast("回避成功！");
+        setExploreMsg("素早さで野良をやり過ごした。");
+      } else {
+        toast("素早さが足りない！ 回避失敗！");
+        startWildFight();
+      }
+    };
     $("#modal-btns").appendChild(go);
+    $("#modal-btns").appendChild(evadeBtn);
     showModal();
   }
 
@@ -7071,7 +7135,7 @@ html, body {
 
     if (levels > 0) {
       const levelText = "レベルアップ！ Lv" + p.level;
-      addLog(levelText + " — 服装・妖力・攻撃・防御が上昇！", "sys");
+      addLog(levelText + " — 服装・妖力・攻撃・防御・素早さが上昇！", "sys");
       toast("レベルアップ！");
     }
     refreshAllHuds();
@@ -7098,6 +7162,9 @@ html, body {
       specialNestKind: opts.specialNestKind || null,
       remoteHair: !!opts.remoteHair,
       _timers: [],
+      initiative: [],
+      initIdx: 0,
+      _firstPlayerAct: true,
     };
     showScreen("combat");
     $("#combat-portrait").src = ASSETS.combat;
@@ -7114,8 +7181,86 @@ html, body {
     if (state.nestRaid && !combat.nestDefense) {
       addLog("⚠ 巣の奇襲中！ 残り" + state.nestRaid.turnsLeft + "T — 「巣へ急行」可", "sys");
     }
+    // 素早さ順で行動（高い方が先）
+    startInitiativeRound(true);
+  }
+
+  function playerSpd() {
+    const p = state.player;
+    return p && p.spd != null ? p.spd : BASE_SPD;
+  }
+
+  function enemySpd(e) {
+    return e && e.spd != null ? e.spd : 8;
+  }
+
+  /** Build turn order: highest SPD first; player wins ties. */
+  function buildInitiativeOrder() {
+    const order = [{ kind: "player", spd: playerSpd() }];
+    combat.enemies.forEach((e, i) => {
+      if (!e.dead) order.push({ kind: "enemy", idx: i, spd: enemySpd(e) });
+    });
+    order.sort((a, b) => {
+      if (b.spd !== a.spd) return b.spd - a.spd;
+      if (a.kind === "player") return -1;
+      if (b.kind === "player") return 1;
+      return a.idx - b.idx;
+    });
+    return order;
+  }
+
+  function startInitiativeRound(isFirst) {
+    if (!combat || combat.finished) return;
+    combat.initiative = buildInitiativeOrder();
+    combat.initIdx = 0;
+    if (!isFirst) {
+      // 1ラウンドに1回だけ巣奇襲タイマーを進める
+      if (!combat.nestDefense && !combat.remoteHair) {
+        maybeTriggerNestRaidMidCombat();
+        if (state.nestRaid) {
+          if (tickNestRaid(1)) return;
+        }
+      }
+    }
+    advanceInitiative();
+  }
+
+  function advanceInitiative() {
+    if (!combat || combat.finished) return;
+    while (combat.initIdx < combat.initiative.length) {
+      const slot = combat.initiative[combat.initIdx];
+      if (slot.kind === "player") break;
+      const e = combat.enemies[slot.idx];
+      if (e && !e.dead) break;
+      combat.initIdx++;
+    }
+    if (combat.initIdx >= combat.initiative.length) {
+      startInitiativeRound(false);
+      return;
+    }
+    const slot = combat.initiative[combat.initIdx];
+    combat.initIdx++;
+    if (slot.kind === "player") {
+      combat.turn = "player";
+      combat.targetSelectLogged = false;
+      combat.selectedSkill = null;
+      if (!combat._firstPlayerAct) {
+        addLog("—— 結羅のターン ——", "sys");
+      }
+      combat._firstPlayerAct = false;
+      renderCombat();
+      refreshAllHuds();
+      return;
+    }
+    combat.turn = "enemy";
     renderCombat();
     refreshAllHuds();
+    const e = combat.enemies[slot.idx];
+    combatTimeout(() => {
+      if (!combat || combat.finished) return;
+      runOneEnemyAction(e);
+      afterOneEnemyAction();
+    }, 450);
   }
 
   function combatTimeout(fn, ms) {
@@ -7288,7 +7433,9 @@ html, body {
           "　攻撃" +
           (p.atk != null ? p.atk : BASE_ATK) +
           "　防御" +
-          (p.def != null ? p.def : BASE_DEF)) +
+          (p.def != null ? p.def : BASE_DEF) +
+          "　素早さ" +
+          (p.spd != null ? p.spd : BASE_SPD)) +
       (combat.nestDefense || state.location === "nest" || combat.remoteHair
         ? "　魂櫛 " + p.comb + "/" + p.maxComb
         : "　魂櫛 巣穴") +
@@ -7338,6 +7485,8 @@ html, body {
           '<div class="unit-name">' +
           e.name +
           (e.bound > 0 ? " ⛓" : "") +
+          "　素早さ" +
+          enemySpd(e) +
           "</div>" +
           '<div class="unit-hp-bar"><div class="fill" style="width:' +
           (e.maxHp ? (e.hp / e.maxHp) * 100 : 0) +
@@ -7605,98 +7754,90 @@ html, body {
       armCombatVictory();
       return;
     }
-    endPlayerTurn();
-  }
-
-  function endPlayerTurn() {
-    if (!combat || combat.finished) return;
-    // buff tick
+    // buff tick at end of player action
     if (state.player.buffTurns > 0) {
       state.player.buffTurns--;
       if (state.player.buffTurns <= 0) state.player.buffAtk = 0;
     }
-    combat.turn = "enemy";
-    renderCombat();
-    refreshAllHuds();
-    combatTimeout(enemyTurn, 550);
+    advanceInitiative();
   }
 
-  function enemyTurn() {
-    if (!combat || combat.finished) return;
+  /** @deprecated kept as alias — SPD initiative uses advanceInitiative */
+  function endPlayerTurn() {
+    afterPlayerAction();
+  }
+
+  /** One enemy's attack (SPD initiative calls this per foe). */
+  function runOneEnemyAction(e) {
+    if (!combat || combat.finished || !e || e.dead) return;
     const p = state.player;
-    const foes = livingEnemies();
     const defendingNest = !!combat.nestDefense;
     const remoteHair = !!combat.remoteHair;
+    const foes = livingEnemies();
 
-    for (let i = 0; i < foes.length; i++) {
-      const e = foes[i];
-      if (e.bound > 0) {
-        e.bound--;
-        addLog(e.name + "は髪に縛られ動けない！", "sys");
-        continue;
-      }
-      // 見えぬ髪の遠隔襲撃：結羅本人は巣にいるため服装は傷つかない（妖力のみ微減）
-      if (remoteHair) {
-        const yDmg = Math.max(1, Math.min(3, e.atk));
-        p.youriki = clamp(p.youriki - yDmg, 0, p.maxYouriki);
-        addLog(
-          e.name + "が虚空の髪を払う！ 妖力−" + yDmg + "（残り" + p.youriki + "/" + p.maxYouriki + "）！",
-          "dmg"
-        );
-        continue;
-      }
-      // 魂櫛は巣穴にのみ存在。フィールドでは服装のみ被弾。
-      // 巣の防衛戦では敵が魂櫛を狙う。裸時は櫛への集中度を上げる。
-      // 特別防衛（竜／奈落）は魂櫛狙いをさらに強める。
-      const specialDef = !!(combat.specialNest || (state.nestRaid && state.nestRaid.special));
-      let combFocus;
-      if (specialDef) {
-        combFocus = p.clothes <= 0 ? 0.72 : (e.isBoss ? 0.58 : 0.4);
-      } else {
-        combFocus = p.clothes <= 0 ? (foes.length >= 8 ? 0.22 : 0.5) : (foes.length >= 8 ? 0.1 : 0.42);
-      }
-      let hitComb = defendingNest && Math.random() < combFocus;
-      if (hitComb) {
-        // Scaled for MAX_COMB=10（旧max=300時は約12／特別ボス約16）
-        let cDmg = 1;
-        if (specialDef && e.isBoss) cDmg = 2;
-        p.comb = clamp(p.comb - cDmg, 0, p.maxComb);
-        addLog(
-          e.name +
-            (specialDef ? "が魂櫛を狙い撃つ！ 魂櫛−" : "が巣の魂櫛に斬り込む！ 魂櫛−") +
-            cDmg +
-            "（残り" +
-            p.comb +
-            "）！",
-          "dmg"
-        );
-      } else {
-        const dmg = calcIncomingClothesDamage(e);
-        const wasClothed = p.clothes > 0;
-        p.clothes = clamp(p.clothes - dmg, 0, p.maxClothes);
-        addLog(e.name + "の攻撃！ 服装HP−" + dmg + "！", "dmg");
-        if (wasClothed && p.clothes <= 0) {
-          const cp = $("#combat-portrait");
-          if (cp) cp.src = ASSETS.nude;
-          $$(".hud-portrait").forEach((img) => (img.src = ASSETS.nude));
-          if (defendingNest) {
-            addLog("着物が破け全裸に……！ それでも魂櫛がある限り戦い続ける！", "sys");
-          } else {
-            addLog("着物が破け全裸に……！ 恥ずかしさに耐えきれない……！", "sys");
-          }
+    if (e.bound > 0) {
+      e.bound--;
+      addLog(e.name + "は髪に縛られ動けない！", "sys");
+      return;
+    }
+    // 見えぬ髪の遠隔襲撃：結羅本人は巣にいるため服装は傷つかない（妖力のみ微減）
+    if (remoteHair) {
+      const yDmg = Math.max(1, Math.min(3, e.atk));
+      p.youriki = clamp(p.youriki - yDmg, 0, p.maxYouriki);
+      addLog(
+        e.name + "が虚空の髪を払う！ 妖力−" + yDmg + "（残り" + p.youriki + "/" + p.maxYouriki + "）！",
+        "dmg"
+      );
+      return;
+    }
+    // 魂櫛は巣穴にのみ存在。フィールドでは服装のみ被弾。
+    // 巣の防衛戦では敵が魂櫛を狙う。裸時は櫛への集中度を上げる。
+    // 特別防衛（竜／奈落）は魂櫛狙いをさらに強める。
+    const specialDef = !!(combat.specialNest || (state.nestRaid && state.nestRaid.special));
+    let combFocus;
+    if (specialDef) {
+      combFocus = p.clothes <= 0 ? 0.72 : (e.isBoss ? 0.58 : 0.4);
+    } else {
+      combFocus = p.clothes <= 0 ? (foes.length >= 8 ? 0.22 : 0.5) : (foes.length >= 8 ? 0.1 : 0.42);
+    }
+    let hitComb = defendingNest && Math.random() < combFocus;
+    if (hitComb) {
+      // Scaled for MAX_COMB=10（旧max=300時は約12／特別ボス約16）
+      let cDmg = 1;
+      if (specialDef && e.isBoss) cDmg = 2;
+      p.comb = clamp(p.comb - cDmg, 0, p.maxComb);
+      addLog(
+        e.name +
+          (specialDef ? "が魂櫛を狙い撃つ！ 魂櫛−" : "が巣の魂櫛に斬り込む！ 魂櫛−") +
+          cDmg +
+          "（残り" +
+          p.comb +
+          "）！",
+        "dmg"
+      );
+    } else {
+      const dmg = calcIncomingClothesDamage(e);
+      const wasClothed = p.clothes > 0;
+      p.clothes = clamp(p.clothes - dmg, 0, p.maxClothes);
+      addLog(e.name + "の攻撃！ 服装HP−" + dmg + "！", "dmg");
+      if (wasClothed && p.clothes <= 0) {
+        const cp = $("#combat-portrait");
+        if (cp) cp.src = ASSETS.nude;
+        $$(".hud-portrait").forEach((img) => (img.src = ASSETS.nude));
+        if (defendingNest) {
+          addLog("着物が破け全裸に……！ それでも魂櫛がある限り戦い続ける！", "sys");
+        } else {
+          addLog("着物が破け全裸に……！ 恥ずかしさに耐えきれない……！", "sys");
         }
       }
     }
+  }
 
-    // 戦闘中の隠し妖力回復はやめる（ログとHUDのズレの原因だった）
-
-    // フィールド戦闘中：奇襲の発生／タイマー進行（遠隔髪・巣防衛は除外）
-    if (!defendingNest && !remoteHair) {
-      maybeTriggerNestRaidMidCombat();
-      if (state.nestRaid) {
-        if (tickNestRaid(1)) return;
-      }
-    }
+  function afterOneEnemyAction() {
+    if (!combat || combat.finished) return;
+    const p = state.player;
+    const defendingNest = !!combat.nestDefense;
+    const remoteHair = !!combat.remoteHair;
 
     refreshAllHuds();
     renderCombat();
@@ -7743,11 +7884,12 @@ html, body {
       $$(".hud-portrait").forEach((img) => (img.src = ASSETS.nude));
     }
 
-    combat.turn = "player";
-    combat.targetSelectLogged = false;
-    combat.selectedSkill = null;
-    addLog("—— 結羅のターン ——", "sys");
-    renderCombat();
+    advanceInitiative();
+  }
+
+  function enemyTurn() {
+    // legacy entry: run remaining initiative as enemy phase
+    advanceInitiative();
   }
 
   // ---------- Title / New Game ----------
