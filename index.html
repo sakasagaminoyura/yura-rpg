@@ -783,6 +783,56 @@ html, body {
   margin-bottom: 8px;
 }
 
+/* ===== Full overworld map ===== */
+.world-map-view {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  padding: 12px;
+  background: rgba(7, 4, 7, 0.96);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.world-map-view.active { display: flex; align-items: center; justify-content: center; }
+.world-map-panel {
+  width: min(100%, 820px);
+  margin: auto;
+  padding: 12px;
+  background: var(--panel);
+  border: 2px solid var(--border-gold);
+  box-shadow: 0 0 28px rgba(0,0,0,0.65);
+  text-align: center;
+}
+.world-map-header h2 {
+  color: var(--gold);
+  font-family: var(--font);
+  letter-spacing: 0.18em;
+  font-size: 1.25rem;
+}
+.world-map-header p { color: var(--text-dim); font-size: 0.8rem; margin-top: 3px; }
+.world-map-canvas-wrap {
+  margin: 10px auto;
+  max-width: 720px;
+  border: 2px solid #3a6a40;
+  background: #1a2e22;
+  line-height: 0;
+  overflow: hidden;
+}
+#world-map-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+.world-map-legend {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+
 </style>
 </head>
 <body>
@@ -920,6 +970,7 @@ html, body {
           </div>
         </div>
         <div class="explore-actions">
+          <button type="button" class="btn btn-sm btn-gold" id="btn-explore-world-map">全体マップ</button>
           <button type="button" class="btn btn-sm" id="btn-explore-map">メニュー／セーブ</button>
           <button type="button" class="btn btn-sm btn-gold" id="btn-explore-menu" style="display:none">巣メニュー</button>
           <button type="button" class="btn btn-sm btn-danger" id="btn-explore-nest" style="display:none">巣へ急行！</button>
@@ -940,6 +991,21 @@ html, body {
         Fan work — © Rumiko Takahashi / Inuyasha
       </p>
     </section>
+
+    <!-- WORLD MAP OVERVIEW -->
+    <div id="world-map-view" class="world-map-view" aria-hidden="true">
+      <div class="world-map-panel" role="dialog" aria-modal="true" aria-labelledby="world-map-title">
+        <div class="world-map-header">
+          <h2 id="world-map-title">全体マップ</h2>
+          <p id="world-map-caption">フィールド全域</p>
+        </div>
+        <div class="world-map-canvas-wrap">
+          <canvas id="world-map-canvas" width="720" height="540" aria-label="フィールド全体マップ"></canvas>
+        </div>
+        <p class="world-map-legend">● 結羅　◆ 地点　薄暗い表示＝未解放　道／森／水域</p>
+        <button type="button" class="btn btn-gold" id="btn-world-map-close">閉じる</button>
+      </div>
+    </div>
 
     <!-- MODAL -->
     <div id="overlay" class="overlay">
@@ -4857,6 +4923,14 @@ html, body {
   let exploreHairMode = null; // { tipX, tipY, path:[{x,y}], originX, originY }
   let exploreCamX = 0;
   let exploreCamY = 0;
+  let worldMapReturn = null;
+
+  const WORLD_MAP_LABELS = {
+    N: "巣穴", A: "村A", V: "村はずれ", B: "村B", F: "森", O: "桃果の園",
+    C: "城", J: "死鏡の沼", W: "骨喰いの井戸", G: "風穴の辻", K: "風の原",
+    P: "西の峠", Q: "楓の里", S: "霧の社", U: "母の幻影", L: "狼の崖",
+    T: "退治屋の里", D: "影の森", Y: "白霊の道", E: "七人塚", H: "決戦の丘",
+  };
 
   const EXPLORE_LEGEND = {
     nest: "巣はメニューのみ（歩行なし）",
@@ -5466,6 +5540,133 @@ html, body {
       ctx.drawImage(frames[0], Math.round(ox - camPx), Math.round(oy - camPy));
       ctx.globalAlpha = 1;
     }
+  }
+
+  function getWorldMapPlayerPosition() {
+    if (explore && (explore.mapId === "overworld" || explore.mapId === "forest")) {
+      return { x: explore.x, y: explore.y };
+    }
+    const pos = state._exploreResume || state._forestExploreResume;
+    if (pos && pos.x != null && pos.y != null) return { x: pos.x, y: pos.y };
+    const start = state.location === "nest"
+      ? EXPLORE_OVERWORLD.starts.nest
+      : EXPLORE_OVERWORLD.starts.default;
+    return { x: start[0], y: start[1] };
+  }
+
+  function drawWorldMapCanvas() {
+    const canvas = document.getElementById("world-map-canvas");
+    if (!canvas) return;
+    ensureExploreArt();
+    const map = EXPLORE_OVERWORLD;
+    const rows = map.rows;
+    const h = rows.length;
+    const w = rows[0].length;
+    const ctx = canvas.getContext("2d");
+    const scale = Math.min(canvas.width / w, canvas.height / h);
+    const ox = Math.floor((canvas.width - w * scale) / 2);
+    const oy = Math.floor((canvas.height - h * scale) / 2);
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = "#14281c";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const ch = rows[y][x];
+        const spr = isOverlayLandmarkChar(ch, "overworld")
+          ? exploreTileCache.path
+          : tileSpriteFor(ch, "overworld");
+        ctx.drawImage(spr, ox + x * scale, oy + y * scale, scale + 0.5, scale + 0.5);
+      }
+    }
+
+    // Landmark labels stay readable at the overview scale.
+    const unlocked = (ch) => {
+      const ids = {
+        N: "nest", A: "villageA", V: "village", B: "villageB", F: "forest", O: "orchard",
+        C: "castle", J: "mirror", W: "well", G: "monkpath", K: "windfield", P: "pass",
+        Q: "kaede", S: "shrine", U: "mother", L: "cliff", T: "slayer", D: "shadow",
+        Y: "whitepath", E: "tomb", H: "hill",
+      };
+      const loc = LOCATIONS.find((l) => l.id === ids[ch]);
+      return !loc || isLocUnlocked(loc);
+    };
+    ctx.font = "bold 12px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    for (let i = 0; i < map.landmarks.length; i++) {
+      const lm = map.landmarks[i];
+      const label = WORLD_MAP_LABELS[lm.ch];
+      if (!label) continue;
+      const cx = ox + (lm.x + 0.5) * scale;
+      const cy = oy + (lm.y + 0.5) * scale;
+      const textW = ctx.measureText(label).width;
+      ctx.fillStyle = unlocked(lm.ch) ? "rgba(20, 12, 0, 0.88)" : "rgba(10, 10, 14, 0.78)";
+      ctx.fillRect(cx - textW / 2 - 4, cy - 19, textW + 8, 14);
+      ctx.strokeStyle = unlocked(lm.ch) ? "#d4af37" : "#687080";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(cx - textW / 2 - 4, cy - 19, textW + 8, 14);
+      ctx.fillStyle = unlocked(lm.ch) ? "#ffe9a0" : "#9aa0ad";
+      ctx.fillText(label, cx, cy - 7);
+    }
+
+    const player = getWorldMapPlayerPosition();
+    if (player && player.x != null && player.y != null) {
+      const px = ox + (player.x + 0.5) * scale;
+      const py = oy + (player.y + 0.5) * scale;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(px, py, Math.max(7, scale * 0.48), 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255, 45, 74, 0.28)";
+      ctx.fill();
+      ctx.strokeStyle = "#ff2d4a";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = "#fff1e6";
+      ctx.font = "bold 12px sans-serif";
+      ctx.textBaseline = "top";
+      ctx.fillText("結羅", px, py + Math.max(8, scale * 0.48));
+      ctx.restore();
+    }
+  }
+
+  function openWorldMap(returnTo) {
+    const view = document.getElementById("world-map-view");
+    if (!view) return;
+    worldMapReturn = returnTo || "map";
+    if (worldMapReturn === "explore" && explore) {
+      stopExploreLoop();
+      saveExploreResume();
+    }
+    hideModal();
+    view.classList.add("active");
+    view.setAttribute("aria-hidden", "false");
+    const caption = document.getElementById("world-map-caption");
+    if (caption) caption.textContent = "フィールド全域（結羅の現在位置を赤丸で表示）";
+    drawWorldMapCanvas();
+  }
+
+  function closeWorldMap() {
+    const view = document.getElementById("world-map-view");
+    if (view) {
+      view.classList.remove("active");
+      view.setAttribute("aria-hidden", "true");
+    }
+    const back = worldMapReturn || "map";
+    worldMapReturn = null;
+    if (back === "explore" && explore) {
+      showScreen("explore");
+      renderExplore();
+      refreshAllHuds();
+      return;
+    }
+    if (back === "nest") {
+      openNestHub();
+      return;
+    }
+    showScreen("map");
+    renderMap();
+    refreshAllHuds();
   }
 
   function buildExploreTiles(mapDef) {
@@ -6485,6 +6686,8 @@ html, body {
       add("狩場を変える（別結末）", () => triggerEnding("path"));
     }
 
+    add("全体マップ", () => openWorldMap("nest"), "btn-gold");
+
     add("セーブ／メニュー", () => {
       saveGame();
       hideToast();
@@ -6561,6 +6764,9 @@ html, body {
   }
 
   function updateExploreHairButtons() {
+    const beworld = $("#btn-explore-world-map");
+    if (beworld)
+      beworld.onclick = () => openWorldMap("explore");
     const bem = $("#btn-explore-map");
     if (bem) {
       if (exploreHairMode) {
@@ -7504,6 +7710,9 @@ html, body {
         enterExplore("overworld", { from: from, skipWalkIntro: state.flags.forestIntroSeen });
       };
 
+    const bworldClose = $("#btn-world-map-close");
+    if (bworldClose) bworldClose.onclick = closeWorldMap;
+
     // Explore D-pad / actions
     const bindDir = (id, dx, dy) => {
       const el = $(id);
@@ -7550,6 +7759,12 @@ html, body {
       };
 
     document.addEventListener("keydown", (e) => {
+      const worldMapView = $("#world-map-view");
+      if (worldMapView && worldMapView.classList.contains("active")) {
+        if (e.key === "Escape") closeWorldMap();
+        e.preventDefault();
+        return;
+      }
       if (e.key === "Enter" || e.key === " ") {
         if ($("#screen-story").classList.contains("active")) {
           e.preventDefault();
