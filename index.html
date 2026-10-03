@@ -5335,8 +5335,8 @@ html, body {
 
   const EXPLORE_LEGEND = {
     nest: "巣はメニューのみ（歩行なし）",
-    overworld: "大フィールド（森含む）　巣の北の通路の先は北の森（強い野良）　黒髪玉＝巣　F＝退治屋　草（稀に龍）",
-    forest: "大フィールド（森含む）　巣の北の通路の先は北の森（強い野良）　黒髪玉＝巣　F＝退治屋　草（稀に龍）",
+    overworld: "大フィールド（森含む）　巣の北の通路の先は北の森（Lv20〜50の野良。竜も普通に出る）　黒髪玉＝巣　F＝退治屋　南の草（稀に龍）",
+    forest: "大フィールド（森含む）　巣の北の通路の先は北の森（Lv20〜50の野良。竜も普通に出る）　黒髪玉＝巣　F＝退治屋　南の草（稀に龍）",
   };
 
   function pxFill(g, color, rects) {
@@ -6537,27 +6537,46 @@ html, body {
   }
 
   function rollNorthWoodsFoe() {
-    // フィールドの野良（HP28前後）や退治屋より明確に強い。名前有りの物語ボスではない。
+    // 北の森だけの通常遭遇。各枠は同じ重み（竜は希少ポップではない）。
+    // レベルは約20〜50。名前有りの物語ボスではない。南フィールドの稀なLv45龍とは別個体。
+    // ステは各種の旧基準（ref）から、レベル差ごとに hp+10 / atk+1 / defは2Lvごと+1 / spdは3Lvごと+1。
     const pool = [
-      { name: "骨狼", level: 24, hp: 140, atk: 26, def: 6, spd: 18, icon: "🦴" },
-      { name: "夜這い蜘蛛", level: 26, hp: 155, atk: 24, def: 7, spd: 15, icon: "🕷️" },
-      { name: "樹喰いの鬼", level: 28, hp: 180, atk: 28, def: 9, spd: 11, icon: "👹" },
-      { name: "影狒々", level: 30, hp: 200, atk: 30, def: 10, spd: 13, icon: "🦍" },
-      { name: "大百足", level: 32, hp: 230, atk: 32, def: 12, spd: 10, icon: "🐛" },
+      { name: "骨狼", min: 20, max: 26, weight: 1, icon: "🦴", ref: 24, hp: 140, atk: 26, def: 6, spd: 18 },
+      { name: "夜這い蜘蛛", min: 25, max: 32, weight: 1, icon: "🕷️", ref: 26, hp: 155, atk: 24, def: 7, spd: 15 },
+      { name: "樹喰いの鬼", min: 30, max: 38, weight: 1, icon: "👹", ref: 28, hp: 180, atk: 28, def: 9, spd: 11 },
+      { name: "影狒々", min: 36, max: 44, weight: 1, icon: "🦍", ref: 30, hp: 200, atk: 30, def: 10, spd: 13 },
+      { name: "大百足", min: 42, max: 50, weight: 1, icon: "🐛", ref: 32, hp: 230, atk: 32, def: 12, spd: 10 },
+      { name: "竜", min: 40, max: 50, weight: 1, icon: "🐲", ref: 45, hp: 340, atk: 40, def: 14, spd: 16 },
     ];
-    const t = pool[(Math.random() * pool.length) | 0];
+    let total = 0;
+    for (let i = 0; i < pool.length; i++) total += pool[i].weight;
+    let roll = Math.random() * total;
+    let t = pool[pool.length - 1];
+    for (let i = 0; i < pool.length; i++) {
+      roll -= pool[i].weight;
+      if (roll < 0) {
+        t = pool[i];
+        break;
+      }
+    }
+    const level = t.min + ((Math.random() * (t.max - t.min + 1)) | 0);
+    const d = level - t.ref;
+    const hp = Math.max(40, t.hp + d * 10);
+    const atk = Math.max(8, t.atk + d);
+    const def = Math.max(1, t.def + Math.floor(d / 2));
+    const spd = Math.max(6, t.spd + Math.floor(d / 3));
     return makeEnemy(
       {
         id: "northstray",
         name: t.name,
-        hp: t.hp,
-        atk: t.atk,
-        def: t.def,
-        spd: t.spd,
+        hp: hp,
+        atk: atk,
+        def: def,
+        spd: spd,
         icon: t.icon,
-        level: t.level,
+        level: level,
       },
-      t.name + " Lv" + t.level
+      t.name + " Lv" + level
     );
   }
 
@@ -6577,8 +6596,8 @@ html, body {
     }
     explore.encounterLock = true;
     saveExploreResume();
-    // Rare: Lv45 龍 (~3.5% of encounters). Common: weaker 野良の妖怪.
-    // 北の森は別テーブル（龍の希少遭遇は従来フィールドのまま）。
+    // South field only: rare Lv45 龍 (~3.5% of encounters). Common: weaker 野良の妖怪.
+    // 北の森は別テーブル（竜は通常枠）。南の希少龍はこのまま。
     const rareDragon = !north && Math.random() < 0.035;
     let foes;
     let encMsg;
