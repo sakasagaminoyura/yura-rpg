@@ -1791,6 +1791,7 @@ html, body {
         specialNestOmen: null, // { kind: 'dragon'|'naraku', day: number } while omen active
         lastSpecialNestDay: 0, // day omen fired or raid resolved (cooldown anchor)
         specialNestWins: 0, // times special nest defense cleared
+        overworldMapRev: 2, // 2 = 北側に北の森を足した歩行マップ
       },
       player: {
         name: "結羅",
@@ -2215,6 +2216,18 @@ html, body {
     }
     if (state.flags.shardHunt == null) {
       state.flags.shardHunt = !!state.flags.inuyashaSlain;
+    }
+    // 旧セーブ（48×36）の歩行座標を、北側拡張ぶん下へずらす。新規は overworldMapRev=2。
+    if (!parsed.flags || parsed.flags.overworldMapRev == null || parsed.flags.overworldMapRev < 2) {
+      const bumpExploreY = (pos) => {
+        if (!pos || pos.y == null) return;
+        const mid = pos.mapId;
+        if (mid && mid !== "overworld" && mid !== "forest") return;
+        pos.y = (pos.y | 0) + 16;
+      };
+      bumpExploreY(state._exploreResume);
+      bumpExploreY(state._forestExploreResume);
+      state.flags.overworldMapRev = 2;
     }
   }
 
@@ -4844,6 +4857,7 @@ html, body {
     Y: { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAwCAYAAABwrHhvAAAAw0lEQVR42mNgGOmA8c7D1/9J0aAiL8qIT55U85gGOgRGHcCSlZVPlMJdW5cxMjAwMCyo0PjPwMDAkNBxAyUtwMRhacTNO+r/0AgBUhT3VAT8Z2C4gcRGBgjxko4NjKOJcOjkAhEREZoYTKy5QysXMDAwMLxh0CBJfPgmQhs3kYF1wJFdb0bLgVEHjDpgcDiA0vKAYgdQWh6MpoFRB4w6gGkgywCKHUCNNsFoGhh1wKgDqOIASsoDqjiAkvJgNA2MglEAAO0JLNSYyyvTAAAAAElFTkSuQmCC" },
     O: { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAClElEQVR42u2YwUrDMBjHk7Ax6KUwxqAgRRBkCAMZA9/Ayy5evHjWg2/gI/gO+gZevOziG3jZZSBDGIgIBSnKEAqjsHpKjDVJvy9rOpV+UChtmv7/X35fkpaQOv557JwOMpf9000Inl9P6K8zYJPpMoywTWJSBl7MlXg/9CoxQcsUbxK9eE6c4MSqEA+5bzsSpdQAFBdoO+cIYbOPQSmJv+5HtzNayQi4iuColwVHvcypASwWNhiZTIARCk/6opOm1yRVIJQPFVIUI1wlvmwDWBMMI97VTLJO/wwivtPzxWGbVUw7TD0UFrFONFZcGeJV0YCigzXhh5616GDQIdEkdrcSQzi1Ec/7hYovNADFZxMLHMhAPFtUtq/B9CdPpQzK/+v9qzMTcj8cn1YTRjc1FfFqsdQ+2D3oljLD+KEHEr1MV8oRUM5CsvDuQVeZfX6N+S3tCt2fROJ8OgiUK24SJ9+Et/tt8jZ9+9GWt5GNKA1sjXazfIb5ucrIarEkzG+RNEm1RkxbBS6s3W9/M0EIMRoxFrEsHnJdjjRJxaHKtmqfI4uHXNca4NnHhqlWTAEt1HxsH+9lWoSKsqyrCTEBeM2xmIYl7nf4x3ucjDBZ1tWEFiGTOMh9bJjEQe6zdfHBYnQehuQ8DK3xyWMkenkZP9KiLJuyz/wWOe0EYAFPNw+0KMum7PPnmQkVLlg+10Ve/MXV4QiLEhcsn6+9G7Vl/vLsbuyiJowGZIwwAXlONSIyRpiQn6vsv5DtiKARUmVzGH2IA5v9olpQjcL+/F0cRe0bJiRMUysUN0jmuSh5hYXi1oCwPRwEGVT4odcZ2eLARe5L7yuqk1/9b9TZR31twPV/oXzcTiJapSjM+2qEagN1/PH4BDAFV7EKEG21AAAAAElFTkSuQmCC" },
     Q: { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAABY0lEQVR42mNgGAUDCxhhDA05kTvEaLjx6I3KYPIA01CPgeHtgev7ApSHtAc0nTbcHbIegIX+YI+F4ZkHru8LUIYlH02nDXeJjYUtUUb/t0QZ/R+S9QC6w32WnWMcMkkIW6jTKyYYaeF4esYEEy0dT4+YYKKl4+nhCSZaO57WnmCip0No4QkmejuA2p5gHOhMSGkpNdofGPUAvWriVbObqJoXwlLrGEdjgJQYOLFzAdVi4MbqSWTpS5iDWWIN+RhgIVfjht82KPwA1iMUqRuxeYCFWgZNqqzDEMtrbxo6HiAFaITmMbz5+I20JkdYFiNVPYCclrGFPq3S/GgeoBVY1tGBwo+qqBjhMZDipvF/MDhww5xJKO6Zs+sG42hzetQDA1EKWbgnkNx+X+aegLuvvWra/9EYwNcfQC+Fjrz5ljoQDrQR4ZqNzB92pRDOGNAwkksZTA69ce7RnGGZB0bBKBjpAAC7d3wyK/cu1gAAAABJRU5ErkJggg==" },
+    Z: { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAClElEQVR42u2YwUrDMBjHk7Ax6KUwxqAgRRBkCAMZA9/Ayy5evHjWg2/gI/gO+gZevOziG3jZZSBDGIgIBSnKEAqjsHpKjDVJvy9rOpV+UChtmv7/X35fkpaQOv557JwOMpf9000Inl9P6K8zYJPpMoywTWJSBl7MlXg/9CoxQcsUbxK9eE6c4MSqEA+5bzsSpdQAFBdoO+cIYbOPQSmJv+5HtzNayQi4iuColwVHvcypASwWNhiZTIARCk/6opOm1yRVIJQPFVIUI1wlvmwDWBMMI97VTLJO/wwivtPzxWGbVUw7TD0UFrFONFZcGeJV0YCigzXhh5616GDQIdEkdrcSQzi1Ec/7hYovNADFZxMLHMhAPFtUtq/B9CdPpQzK/+v9qzMTcj8cn1YTRjc1FfFqsdQ+2D3oljLD+KEHEr1MV8oRUM5CsvDuQVeZfX6N+S3tCt2fROJ8OgiUK24SJ9+Et/tt8jZ9+9GWt5GNKA1sjXazfIb5ucrIarEkzG+RNEm1RkxbBS6s3W9/M0EIMRoxFrEsHnJdjjRJxaHKtmqfI4uHXNca4NnHhqlWTAEt1HxsH+9lWoSKsqyrCTEBeM2xmIYl7nf4x3ucjDBZ1tWEFiGTOMh9bJjEQe6zdfHBYnQehuQ8DK3xyWMkenkZP9KiLJuyz/wWOe0EYAFPNw+0KMum7PPnmQkVLlg+10Ve/MXV4QiLEhcsn6+9G7Vl/vLsbuyiJowGZIwwAXlONSIyRpiQn6vsv5DtiKARUmVzGH2IA5v9olpQjcL+/F0cRe0bJiRMUysUN0jmuSh5hYXi1oCwPRwEGVT4odcZ2eLARe5L7yuqk1/9b9TZR31twPV/oXzcTiJapSjM+2qEagN1/PH4BDAFV7EKEG21AAAAAElFTkSuQmCC" }, // 北の森（既存の森イラストを流用）
   };
 
   let landmarkImgCache = null; // ch -> HTMLImageElement
@@ -5118,7 +5132,63 @@ html, body {
       placeLandmark(tiles, pos[0], pos[1], ch, pos[2]);
       landmarks.push({ ch: ch, x: pos[0], y: pos[1], shape: pos[2] });
     }
-    const rows = tiles.map((r) => r.join(""));
+    // 北の森: prepend rows north of the old border. Story landmarks keep their
+    // relative layout (shifted south by NORTH). A 3-wide road leaves the nest northward.
+    const NORTH = 16;
+    const northRows = [];
+    for (let y = 0; y < NORTH; y++) {
+      const row = [];
+      for (let x = 0; x < W; x++) {
+        if (y === 0 || x === 0 || x === W - 1) row.push("#");
+        else {
+          const n = (x * 19 + y * 23) % 100;
+          if (n < 14) row.push("#");
+          else if (n < 86) row.push("g");
+          else row.push(".");
+        }
+      }
+      northRows.push(row);
+    }
+    const field = northRows.concat(tiles);
+    for (let i = 0; i < landmarks.length; i++) landmarks[i].y += NORTH;
+    carvePath(field, 5, 4 + NORTH, 5, 7, ".");
+    carvePath(field, 5, 7, 24, 7, ".");
+    carvePath(field, 24, 7, 40, 5, ".");
+    carvePath(field, 24, 7, 14, 3, ".");
+    carvePath(field, 24, 7, 36, 12, ".");
+    placeLandmark(field, 24, 7, "Z", "forest");
+    landmarks.push({ ch: "Z", x: 24, y: 7, shape: "forest" });
+    const rows = field.map((r) => r.join(""));
+    const starts = {
+      // south of nest circle (not on N tiles)
+      default: [5, 7],
+      nest: [5, 7],
+      forest: [22, 17],
+      village: [17, 11],
+      villageA: [11, 9],
+      villageB: [14, 19],
+      castle: [30, 13],
+      pass: [38, 6],
+      shrine: [42, 16],
+      cliff: [12, 28],
+      shadow: [26, 28],
+      well: [28, 22],
+      hill: [42, 30],
+      slayer: [18, 26],
+      monkpath: [24, 24],
+      tomb: [38, 28],
+      windfield: [6, 16],
+      mirror: [20, 13],
+      mother: [42, 20],
+      whitepath: [34, 24],
+      orchard: [7, 22],
+      kaede: [36, 12],
+      map: [22, 17],
+      overworld: [5, 7],
+    };
+    Object.keys(starts).forEach((k) => {
+      starts[k] = [starts[k][0], starts[k][1] + NORTH];
+    });
     return {
       id: "overworld",
       name: "フィールド",
@@ -5127,33 +5197,7 @@ html, body {
       pathChance: 0.04,
       rows: rows,
       landmarks: landmarks,
-      starts: {
-        // south of nest circle (not on N tiles)
-        default: [5, 7],
-        nest: [5, 7],
-        forest: [22, 17],
-        village: [17, 11],
-        villageA: [11, 9],
-        villageB: [14, 19],
-        castle: [30, 13],
-        pass: [38, 6],
-        shrine: [42, 16],
-        cliff: [12, 28],
-        shadow: [26, 28],
-        well: [28, 22],
-        hill: [42, 30],
-        slayer: [18, 26],
-        monkpath: [24, 24],
-        tomb: [38, 28],
-        windfield: [6, 16],
-        mirror: [20, 13],
-        mother: [42, 20],
-        whitepath: [34, 24],
-        orchard: [7, 22],
-        kaede: [36, 12],
-        map: [22, 17],
-        overworld: [5, 7],
-      },
+      starts: starts,
       blockMsg: "行けない……",
     };
   }
@@ -5286,12 +5330,13 @@ html, body {
     C: "城", J: "死鏡の沼", W: "骨喰いの井戸", G: "風穴の辻", K: "風の原",
     P: "西の峠", Q: "楓の里", S: "霧の社", U: "母の幻影", L: "狼の崖",
     T: "退治屋の里", D: "影の森", Y: "白霊の道", E: "七人塚", H: "決戦の丘",
+    Z: "北の森",
   };
 
   const EXPLORE_LEGEND = {
     nest: "巣はメニューのみ（歩行なし）",
-    overworld: "大フィールド（森含む）　地点はイラスト看板　黒髪玉＝巣　F＝退治屋　草（稀に龍）",
-    forest: "大フィールド（森含む）　地点はイラスト看板　黒髪玉＝巣　F＝退治屋　草（稀に龍）",
+    overworld: "大フィールド（森含む）　巣の北の通路の先は北の森（強い野良）　黒髪玉＝巣　F＝退治屋　草（稀に龍）",
+    forest: "大フィールド（森含む）　巣の北の通路の先は北の森（強い野良）　黒髪玉＝巣　F＝退治屋　草（稀に龍）",
   };
 
   function pxFill(g, color, rects) {
@@ -5760,9 +5805,29 @@ html, body {
         updateExploreRaidButton();
       }
     }
+    updateExploreAreaChrome();
+    if ((explore.mapId === "overworld" || explore.mapId === "forest") && inNorthWoods(explore.y)) {
+      if (!state.flags.northWoodsEntered) {
+        state.flags.northWoodsEntered = true;
+        toast("北の森に入った。強い野良妖怪が跋扈している。");
+      }
+    }
     const tile = explore.tiles[explore.y][explore.x];
     if (handleExploreTile(tile)) return;
     maybeExploreRandomEncounter(tile);
+  }
+
+  /** Rows added north of the old field. y < this is 北の森. */
+  function inNorthWoods(y) {
+    return y < 16;
+  }
+
+  function updateExploreAreaChrome() {
+    const title = document.getElementById("explore-title");
+    if (!title || !explore) return;
+    const north =
+      (explore.mapId === "overworld" || explore.mapId === "forest") && inNorthWoods(explore.y);
+    title.textContent = (north ? "北の森" : explore.name || "探索") + "・探索";
   }
 
   function getExploreCanvas() {
@@ -5999,7 +6064,7 @@ html, body {
     view.classList.add("active");
     view.setAttribute("aria-hidden", "false");
     const caption = document.getElementById("world-map-caption");
-    if (caption) caption.textContent = "フィールド全域（結羅の現在位置を赤丸で表示）";
+    if (caption) caption.textContent = "フィールド全域（北は北の森）。結羅の現在位置を赤丸で表示";
     drawWorldMapCanvas();
   }
 
@@ -6203,8 +6268,7 @@ html, body {
 
   function renderExplore() {
     if (!explore) return;
-    const title = document.getElementById("explore-title");
-    if (title) title.textContent = (explore.name || "探索") + "・探索";
+    updateExploreAreaChrome();
     const legend = document.getElementById("explore-legend");
     if (legend) {
       legend.textContent = EXPLORE_LEGEND[explore.mapId] || EXPLORE_LEGEND.forest;
@@ -6462,27 +6526,60 @@ html, body {
         toast("決戦の丘……今はただの丘だ。");
         return true;
       }
+      if (tile === "Z") {
+        setExploreMsg("北の森の奥。強力な野良妖怪が跋扈している。");
+        return true;
+      }
       return false;
     }
 
     return false;
   }
 
+  function rollNorthWoodsFoe() {
+    // フィールドの野良（HP28前後）や退治屋より明確に強い。名前有りの物語ボスではない。
+    const pool = [
+      { name: "骨狼", level: 24, hp: 140, atk: 26, def: 6, spd: 18, icon: "🦴" },
+      { name: "夜這い蜘蛛", level: 26, hp: 155, atk: 24, def: 7, spd: 15, icon: "🕷️" },
+      { name: "樹喰いの鬼", level: 28, hp: 180, atk: 28, def: 9, spd: 11, icon: "👹" },
+      { name: "影狒々", level: 30, hp: 200, atk: 30, def: 10, spd: 13, icon: "🦍" },
+      { name: "大百足", level: 32, hp: 230, atk: 32, def: 12, spd: 10, icon: "🐛" },
+    ];
+    const t = pool[(Math.random() * pool.length) | 0];
+    return makeEnemy(
+      {
+        id: "northstray",
+        name: t.name,
+        hp: t.hp,
+        atk: t.atk,
+        def: t.def,
+        spd: t.spd,
+        icon: t.icon,
+        level: t.level,
+      },
+      t.name + " Lv" + t.level
+    );
+  }
+
   function maybeExploreRandomEncounter(tile) {
     if (!explore || explore.encounterLock || explore.safe || exploreHairMode) return;
+    const north =
+      (explore.mapId === "overworld" || explore.mapId === "forest") && inNorthWoods(explore.y);
     let chance = 0;
-    if (tile === "g") chance = explore.grassChance || 0.24;
-    else if (tile === ".") chance = explore.pathChance || 0.06;
+    if (tile === "g") chance = north ? 0.22 : explore.grassChance || 0.24;
+    else if (tile === ".") chance = north ? 0.07 : explore.pathChance || 0.06;
     else return;
     if (Math.random() > chance) {
-      if (tile === "g") setExploreMsg("草をかき分けて進む……");
+      if (north) setExploreMsg(tile === "g" ? "北の森の草をかき分ける……濃い妖気。" : "北の森の道を歩く。");
+      else if (tile === "g") setExploreMsg("草をかき分けて進む……");
       else setExploreMsg((explore.name || "道") + "を歩く。");
       return;
     }
     explore.encounterLock = true;
     saveExploreResume();
     // Rare: Lv45 龍 (~3.5% of encounters). Common: weaker 野良の妖怪.
-    const rareDragon = Math.random() < 0.035;
+    // 北の森は別テーブル（龍の希少遭遇は従来フィールドのまま）。
+    const rareDragon = !north && Math.random() < 0.035;
     let foes;
     let encMsg;
     let winMsg;
@@ -6494,6 +6591,15 @@ html, body {
       winMsg = "龍を退けた……稀な獲物だったわ。";
       yourikiBonus = 40;
       toastMsg = "激レア遭遇！　龍！！";
+    } else if (north) {
+      const n = Math.random() < 0.28 ? 2 : 1;
+      foes = [];
+      for (let i = 0; i < n; i++) foes.push(rollNorthWoodsFoe());
+      const shown = foes.map((f) => f.name).join("、");
+      encMsg = "北の森の野良妖怪に遭遇した！ " + shown;
+      winMsg = "北の森の野良妖怪を退けた。";
+      yourikiBonus = 16;
+      toastMsg = "北の森の野良妖怪！";
     } else {
       const n = Math.random() < 0.35 ? 2 : 1;
       foes = [];
@@ -6620,7 +6726,7 @@ html, body {
       getNextObjective() +
       "</strong></p>" +
       "<p><strong>移動はマップを歩いて行う。</strong></p>" +
-      "<p>フィールド（森含む）を歩く。黒い髪の玉＝結羅の巣（入るとメニューのみ）。村Aは地図上に「村A」と表示。</p>" +
+      "<p>フィールド（森含む）を歩く。黒い髪の玉＝結羅の巣（入るとメニューのみ）。村Aは地図上に「村A」と表示。巣の北の通路の先は北の森。</p>" +
       "<p>髪の結界は巣メニューから。黒髪をマップ上で伸ばして村を襲え。</p>";
     grid.appendChild(hint);
 
