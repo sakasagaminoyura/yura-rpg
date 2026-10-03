@@ -1245,20 +1245,25 @@ html, body {
     return Math.max(10, Math.floor(hp / 3)) + (enemy && enemy.isBoss ? 20 : 0);
   }
 
+  /** One level of the same stat growth as EXP level-up (does not touch EXP). */
+  function applyOneLevel(p) {
+    p.level += 1;
+    p.maxClothes += LEVEL_CLOTHES_GROWTH;
+    p.maxYouriki += LEVEL_YOURIKI_GROWTH;
+    p.atk = (p.atk || BASE_ATK) + LEVEL_ATK_GROWTH;
+    p.def = (p.def || BASE_DEF) + LEVEL_DEF_GROWTH;
+    p.spd = (p.spd || BASE_SPD) + LEVEL_SPD_GROWTH;
+    p.clothes = clamp(p.clothes + LEVEL_CLOTHES_REFILL, 0, p.maxClothes);
+    p.youriki = clamp(p.youriki + LEVEL_YOURIKI_REFILL, 0, p.maxYouriki);
+  }
+
   /** Apply every level whose threshold has been filled. */
   function applyLevelUps(p) {
     let levels = 0;
     while (p.exp >= expToNextLevel(p.level)) {
       p.exp -= expToNextLevel(p.level);
-      p.level += 1;
+      applyOneLevel(p);
       levels += 1;
-      p.maxClothes += LEVEL_CLOTHES_GROWTH;
-      p.maxYouriki += LEVEL_YOURIKI_GROWTH;
-      p.atk = (p.atk || BASE_ATK) + LEVEL_ATK_GROWTH;
-      p.def = (p.def || BASE_DEF) + LEVEL_DEF_GROWTH;
-      p.spd = (p.spd || BASE_SPD) + LEVEL_SPD_GROWTH;
-      p.clothes = clamp(p.clothes + LEVEL_CLOTHES_REFILL, 0, p.maxClothes);
-      p.youriki = clamp(p.youriki + LEVEL_YOURIKI_REFILL, 0, p.maxYouriki);
     }
     return levels;
   }
@@ -1891,8 +1896,16 @@ html, body {
       return;
     }
     const add = Math.min(want, SHARD_GOAL - cur);
+    if (add <= 0) {
+      state.flags.shikonShards = SHARD_GOAL;
+      refreshAllHuds();
+      refreshShardMenuIfOpen();
+      return;
+    }
     state.flags.shikonShards = cur + add;
     state.flags.shikonShardsTaken = true;
+    const p = state.player;
+    for (let i = 0; i < add; i++) applyOneLevel(p);
     const msg =
       "四魂の玉の欠片×" +
       add +
@@ -1901,8 +1914,18 @@ html, body {
       " 合計 " +
       state.flags.shikonShards +
       "/" +
-      SHARD_GOAL;
+      SHARD_GOAL +
+      "　欠片の力でレベルアップ！ Lv" +
+      p.level;
     toast(msg);
+    addLog(
+      "四魂の欠片が結羅を強めた！ レベルアップ！ Lv" +
+        p.level +
+        "（+" +
+        add +
+        "） — 服装・妖力・攻撃・防御・素早さが上昇！",
+      "sys"
+    );
     refreshAllHuds();
     refreshShardMenuIfOpen();
   }
