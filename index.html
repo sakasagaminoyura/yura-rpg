@@ -8562,13 +8562,12 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
 
 
   // Shared guestbook. Not saved only in this browser.
-  // Store: https://append.page/p/yura-rpg-guestbook
-  // Anyone may append one comment (POST /entries). That host allows
-  // GET and POST only — no PUT, PATCH, or DELETE — so a visitor cannot
-  // edit, replace, or wipe the list. No key is stored in this page.
-  // The previous MantleDB namespace could be overwritten by anyone and
-  // was purged after 30 days without writes. This store has no such timer.
-  const GB_PAGE = "https://append.page/p/yura-rpg-guestbook";
+  // Store: https://guestbook-service.vercel.app/api/entries?user=yurarpg
+  // Anyone may read (GET) and post (POST). Delete needs the owner token,
+  // which is not in this page, so visitors cannot remove a comment.
+  // There is no 30-day expiry. No key is stored in this page.
+  const GB_API = "https://guestbook-service.vercel.app/api/entries";
+  const GB_OWNER = "yurarpg";
   const GB_NAME_MAX = 20;
   const GB_TEXT_MAX = 200;
 
@@ -8582,76 +8581,27 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       .trim();
   }
 
-  function gbParseBody(body) {
-    if (typeof body !== "string" || !body) return null;
-    let name = "";
-    let text = body;
-    const trimmed = body.trim();
-    if (trimmed.charAt(0) === "{") {
-      try {
-        const obj = JSON.parse(trimmed);
-        if (obj && typeof obj.text === "string") {
-          text = obj.text;
-          name = typeof obj.name === "string" ? obj.name : "";
-        }
-      } catch (e) {}
-    }
-    text = gbClip(gbClean(text), GB_TEXT_MAX);
-    if (!text) return null;
-    name = gbClip(gbClean(name), GB_NAME_MAX);
-    return { name: name, text: text };
-  }
-
-  function gbLines(raw) {
-    return String(raw || "")
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
+  function gbWhen(raw) {
+    if (!raw) return 0;
+    const s = String(raw).trim().replace(" ", "T");
+    const t = Date.parse(s.endsWith("Z") || /[+-]\d\d:?\d\d$/.test(s) ? s : s + "Z");
+    return isFinite(t) ? t : 0;
   }
 
   function gbFetchWall() {
-    return Promise.all([
-      fetch(GB_PAGE + "/raw", { cache: "no-store" }).then((res) => {
-        if (res.status === 404) return "";
-        if (!res.ok) throw new Error("load");
-        return res.text();
-      }),
-      fetch(GB_PAGE + "/bodies.jsonl", { cache: "no-store" }).then((res) => {
-        if (res.status === 404) return "";
-        if (!res.ok) throw new Error("load");
-        return res.text();
-      }),
-    ]).then((parts) => {
-      const meta = {};
-      gbLines(parts[0]).forEach((line) => {
-        try {
-          const entry = JSON.parse(line);
-          if (entry && typeof entry.id === "string") meta[entry.id] = entry;
-        } catch (e) {}
-      });
+    return fetch(GB_API + "?user=" + encodeURIComponent(GB_OWNER), { cache: "no-store" }).then((res) => {
+      if (!res.ok) throw new Error("load");
+      return res.json();
+    }).then((rows) => {
+      if (!Array.isArray(rows)) throw new Error("load");
       const out = [];
-      const seen = {};
-      gbLines(parts[1]).forEach((line) => {
-        let row;
-        try {
-          row = JSON.parse(line);
-        } catch (e) {
-          return;
-        }
-        if (!row || row.erased) return;
-        const id = typeof row.entry_id === "string" ? row.entry_id : "";
-        if (!id || seen[id]) return;
-        const entry = meta[id];
-        if (entry && entry.kind && entry.kind !== "entry") return;
-        const parsed = gbParseBody(row.body);
-        if (!parsed) return;
-        seen[id] = true;
-        let at = 0;
-        if (entry && entry.created_at) {
-          const t = Date.parse(entry.created_at);
-          if (isFinite(t)) at = t;
-        }
-        out.push({ id: id, name: parsed.name, text: parsed.text, at: at });
+      rows.forEach((row) => {
+        if (!row || row.parent_id) return;
+        const text = gbClip(gbClean(row.message), GB_TEXT_MAX);
+        if (!text) return;
+        const name = gbClip(gbClean(row.sender_name), GB_NAME_MAX);
+        const id = row.id == null ? "" : String(row.id);
+        out.push({ id: id, name: name, text: text, at: gbWhen(row.created_at) });
       });
       out.sort((a, b) => b.at - a.at);
       return out;
@@ -8659,14 +8609,20 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   }
 
   function gbPost(name, text) {
-    return fetch(GB_PAGE + "/entries", {
+    return fetch(GB_API, {
       method: "POST",
       cache: "no-store",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body: JSON.stringify({ name: name, text: text }) }),
+      body: JSON.stringify({
+        owner_username: GB_OWNER,
+        sender_name: name,
+        message: text,
+        is_private: false,
+        bot_field: "",
+      }),
     }).then((res) => {
       if (!res.ok) throw new Error("save");
-      return res.json();
+      return res.json().catch(() => ({}));
     });
   }
 
@@ -8747,19 +8703,12 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     if (send) send.disabled = true;
     gbSetStatus("送信中…");
     gbPost(name, text)
-      .then((posted) => {
-        const entry = posted && posted.entry;
-        const id = entry && typeof entry.id === "string" ? entry.id : "";
-        let at = Date.now();
-        if (entry && entry.created_at) {
-          const t = Date.parse(entry.created_at);
-          if (isFinite(t)) at = t;
-        }
-        const mine = { id: id, name: name, text: text, at: at };
+      .then(() => {
+        const mine = { id: "", name: name, text: text, at: Date.now() };
         return gbFetchWall()
           .catch(() => [])
           .then((saved) => {
-            if (!id || !saved.some((c) => c.id === id)) saved = [mine].concat(saved);
+            if (!saved.some((c) => c.name === name && c.text === text)) saved = [mine].concat(saved);
             gbRender(saved);
             textEl.value = "";
             if (nameEl) nameEl.value = "";
