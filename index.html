@@ -1095,7 +1095,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     <!-- GUESTBOOK -->
     <section id="screen-guestbook" class="screen">
       <h2 class="gb-title">感想</h2>
-      <p class="gb-lead">遊んだ感想を残せます。ここに書いたものは、ほかの人の画面にも出ます。名前は空欄でも大丈夫です。</p>
+      <p class="gb-lead">遊んだ感想を残せます。ここに書いたものは、ほかの人の画面にも出ます。名前は空欄でも大丈夫です。送った感想は消せません。</p>
       <form id="gb-form" class="gb-form">
         <label class="gb-label" for="gb-name">名前（なくてもいい）</label>
         <input id="gb-name" class="gb-input" type="text" name="name" maxlength="20" autocomplete="nickname" placeholder="20文字まで" />
@@ -8562,14 +8562,15 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
 
 
   // Shared guestbook. Not saved only in this browser.
-  // Store: https://mantledb.sh/v2/yura-rpg-guestbook-sakasagaminoyura/wall
-  // Free unclaimed namespace (no account). Writes keep it; the service says it
-  // drops a namespace after 30 days with no writes. Opening this page also
-  // writes meta/touch so a visit refreshes that timer.
-  const GB_BASE = "https://mantledb.sh/v2/yura-rpg-guestbook-sakasagaminoyura";
+  // Store: https://append.page/p/yura-rpg-guestbook
+  // Anyone may append one comment (POST /entries). That host allows
+  // GET and POST only — no PUT, PATCH, or DELETE — so a visitor cannot
+  // edit, replace, or wipe the list. No key is stored in this page.
+  // The previous MantleDB namespace could be overwritten by anyone and
+  // was purged after 30 days without writes. This store has no such timer.
+  const GB_PAGE = "https://append.page/p/yura-rpg-guestbook";
   const GB_NAME_MAX = 20;
   const GB_TEXT_MAX = 200;
-  const GB_KEEP = 40;
 
   function gbClip(s, n) {
     return Array.from(String(s || "")).slice(0, n).join("");
@@ -8581,62 +8582,92 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       .trim();
   }
 
-  function gbValidItem(item) {
-    if (!item || typeof item !== "object") return false;
-    if (typeof item.text !== "string" || !item.text) return false;
-    if (item.name != null && typeof item.name !== "string") return false;
-    if (typeof item.at !== "number" || !isFinite(item.at)) return false;
-    return true;
+  function gbParseBody(body) {
+    if (typeof body !== "string" || !body) return null;
+    let name = "";
+    let text = body;
+    const trimmed = body.trim();
+    if (trimmed.charAt(0) === "{") {
+      try {
+        const obj = JSON.parse(trimmed);
+        if (obj && typeof obj.text === "string") {
+          text = obj.text;
+          name = typeof obj.name === "string" ? obj.name : "";
+        }
+      } catch (e) {}
+    }
+    text = gbClip(gbClean(text), GB_TEXT_MAX);
+    if (!text) return null;
+    name = gbClip(gbClean(name), GB_NAME_MAX);
+    return { name: name, text: text };
   }
 
-  function gbNormalize(list) {
-    const out = [];
-    const seen = {};
-    (list || []).forEach((item) => {
-      if (!gbValidItem(item)) return;
-      const text = gbClip(gbClean(item.text), GB_TEXT_MAX);
-      if (!text) return;
-      const name = gbClip(gbClean(item.name || ""), GB_NAME_MAX);
-      const id = typeof item.id === "string" && item.id ? item.id.slice(0, 40) : "";
-      if (id && seen[id]) return;
-      if (id) seen[id] = true;
-      out.push({ id: id, name: name, text: text, at: item.at });
-    });
-    out.sort((a, b) => b.at - a.at);
-    return out.slice(0, GB_KEEP);
+  function gbLines(raw) {
+    return String(raw || "")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
   }
 
   function gbFetchWall() {
-    return fetch(GB_BASE + "/wall", { cache: "no-store" })
-      .then((res) => {
-        if (res.status === 404) return { comments: [] };
+    return Promise.all([
+      fetch(GB_PAGE + "/raw", { cache: "no-store" }).then((res) => {
+        if (res.status === 404) return "";
         if (!res.ok) throw new Error("load");
-        return res.json();
-      })
-      .then((data) => {
-        const list = data && Array.isArray(data.comments) ? data.comments : [];
-        return gbNormalize(list);
+        return res.text();
+      }),
+      fetch(GB_PAGE + "/bodies.jsonl", { cache: "no-store" }).then((res) => {
+        if (res.status === 404) return "";
+        if (!res.ok) throw new Error("load");
+        return res.text();
+      }),
+    ]).then((parts) => {
+      const meta = {};
+      gbLines(parts[0]).forEach((line) => {
+        try {
+          const entry = JSON.parse(line);
+          if (entry && typeof entry.id === "string") meta[entry.id] = entry;
+        } catch (e) {}
       });
-  }
-
-  function gbSaveWall(comments) {
-    return fetch(GB_BASE + "/wall", {
-      method: "POST",
-      cache: "no-store",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ comments: comments }),
-    }).then((res) => {
-      if (!res.ok) throw new Error("save");
+      const out = [];
+      const seen = {};
+      gbLines(parts[1]).forEach((line) => {
+        let row;
+        try {
+          row = JSON.parse(line);
+        } catch (e) {
+          return;
+        }
+        if (!row || row.erased) return;
+        const id = typeof row.entry_id === "string" ? row.entry_id : "";
+        if (!id || seen[id]) return;
+        const entry = meta[id];
+        if (entry && entry.kind && entry.kind !== "entry") return;
+        const parsed = gbParseBody(row.body);
+        if (!parsed) return;
+        seen[id] = true;
+        let at = 0;
+        if (entry && entry.created_at) {
+          const t = Date.parse(entry.created_at);
+          if (isFinite(t)) at = t;
+        }
+        out.push({ id: id, name: parsed.name, text: parsed.text, at: at });
+      });
+      out.sort((a, b) => b.at - a.at);
+      return out;
     });
   }
 
-  function gbTouch() {
-    fetch(GB_BASE + "/meta/touch", {
+  function gbPost(name, text) {
+    return fetch(GB_PAGE + "/entries", {
       method: "POST",
       cache: "no-store",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ at: Date.now() }),
-    }).catch(() => {});
+      body: JSON.stringify({ body: JSON.stringify({ name: name, text: text }) }),
+    }).then((res) => {
+      if (!res.ok) throw new Error("save");
+      return res.json();
+    });
   }
 
   function gbRender(list) {
@@ -8661,7 +8692,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       const time = document.createElement("time");
       time.className = "gb-time";
       try {
-        time.textContent = new Date(item.at).toLocaleString("ja-JP");
+        time.textContent = item.at ? new Date(item.at).toLocaleString("ja-JP") : "";
       } catch (e) {
         time.textContent = "";
       }
@@ -8683,7 +8714,6 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
 
   function loadGuestbook() {
     gbSetStatus("読み込み中…");
-    gbTouch();
     return gbFetchWall()
       .then((list) => {
         gbRender(list);
@@ -8714,28 +8744,29 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       gbSetStatus("感想を書いてから送ってください。");
       return;
     }
-    const id = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
-    const item = { id: id, name: name, text: text, at: Date.now() };
     if (send) send.disabled = true;
     gbSetStatus("送信中…");
-    function attempt(left) {
-      return gbFetchWall().then((list) => {
-        const next = gbNormalize([item].concat(list));
-        return gbSaveWall(next)
-          .then(() => gbFetchWall())
+    gbPost(name, text)
+      .then((posted) => {
+        const entry = posted && posted.entry;
+        const id = entry && typeof entry.id === "string" ? entry.id : "";
+        let at = Date.now();
+        if (entry && entry.created_at) {
+          const t = Date.parse(entry.created_at);
+          if (isFinite(t)) at = t;
+        }
+        const mine = { id: id, name: name, text: text, at: at };
+        return gbFetchWall()
+          .catch(() => [])
           .then((saved) => {
-            const ok = saved.some((c) => c.id === id);
-            if (!ok && left > 0) return attempt(left - 1);
-            if (!ok) throw new Error("missing");
+            if (!id || !saved.some((c) => c.id === id)) saved = [mine].concat(saved);
             gbRender(saved);
             textEl.value = "";
             if (nameEl) nameEl.value = "";
             gbUpdateCount();
             gbSetStatus("感想を受け付けました。");
           });
-      });
-    }
-    attempt(2)
+      })
       .catch(() => {
         gbSetStatus("送れませんでした。通信を確認して、もう一度押してください。");
       })
