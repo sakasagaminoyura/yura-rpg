@@ -1013,6 +1013,60 @@ html, body {
   }
 }
 
+/* ===== Guestbook ===== */
+#screen-guestbook {
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.gb-title {
+  font-family: var(--font);
+  color: var(--gold);
+  letter-spacing: 0.16em;
+  font-size: 1.4rem;
+  text-align: center;
+}
+.gb-lead {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  text-align: center;
+}
+.gb-form { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.gb-label { font-size: 0.8rem; color: var(--gold); letter-spacing: 0.08em; }
+.gb-input {
+  width: 100%;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  color: var(--text);
+  background: #12080c;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 10px 12px;
+  line-height: 1.5;
+}
+textarea.gb-input { min-height: 96px; resize: vertical; }
+.gb-input:focus { outline: 1px solid var(--border-gold); }
+.gb-count, .gb-status { font-size: 0.78rem; color: var(--text-dim); min-height: 1.2em; }
+.gb-list { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.gb-empty { color: var(--text-dim); text-align: center; font-size: 0.85rem; padding: 8px 0 12px; }
+.gb-item {
+  border: 1px solid var(--border);
+  background: rgba(20, 8, 12, 0.85);
+  padding: 10px 12px;
+  border-radius: 2px;
+}
+.gb-who { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; margin-bottom: 6px; }
+.gb-name { color: var(--gold); font-size: 0.85rem; overflow-wrap: anywhere; }
+.gb-time { color: var(--text-dim); font-size: 0.72rem; flex: 0 0 auto; }
+.gb-text { font-size: 0.92rem; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+#btn-guestbook-back { margin-top: 4px; }
+
+
 </style>
 </head>
 <body>
@@ -1029,11 +1083,30 @@ html, body {
         <button id="btn-new" class="btn btn-gold btn-block">ニューゲーム</button>
         <button id="btn-continue" class="btn btn-block" disabled>つづきから（冒険中）</button>
         <button id="btn-clear" class="btn btn-block" disabled>クリア後から</button>
+        <button id="btn-guestbook" type="button" class="btn btn-block">感想</button>
       </div>
       <p class="title-footer">
         Fan work for personal play — Characters © Rumiko Takahashi / Inuyasha<br />
         高橋留美子『犬夜叉』二次創作（非公式・非営利）
       </p>
+    </section>
+
+
+    <!-- GUESTBOOK -->
+    <section id="screen-guestbook" class="screen">
+      <h2 class="gb-title">感想</h2>
+      <p class="gb-lead">遊んだ感想を残せます。ここに書いたものは、ほかの人の画面にも出ます。名前は空欄でも大丈夫です。</p>
+      <form id="gb-form" class="gb-form">
+        <label class="gb-label" for="gb-name">名前（なくてもいい）</label>
+        <input id="gb-name" class="gb-input" type="text" name="name" maxlength="20" autocomplete="nickname" placeholder="20文字まで" />
+        <label class="gb-label" for="gb-text">感想</label>
+        <textarea id="gb-text" class="gb-input" name="text" maxlength="200" rows="4" placeholder="200文字まで"></textarea>
+        <p id="gb-count" class="gb-count">0/200</p>
+        <button id="gb-send" class="btn btn-gold btn-block" type="submit">送る</button>
+        <p id="gb-status" class="gb-status" role="status"></p>
+      </form>
+      <div id="gb-list" class="gb-list"></div>
+      <button id="btn-guestbook-back" type="button" class="btn btn-block">タイトルへ</button>
     </section>
 
     <!-- STORY -->
@@ -8487,12 +8560,214 @@ html, body {
     enterMap();
   }
 
+
+  // Shared guestbook. Not saved only in this browser.
+  // Store: https://mantledb.sh/v2/yura-rpg-guestbook-sakasagaminoyura/wall
+  // Free unclaimed namespace (no account). Writes keep it; the service says it
+  // drops a namespace after 30 days with no writes. Opening this page also
+  // writes meta/touch so a visit refreshes that timer.
+  const GB_BASE = "https://mantledb.sh/v2/yura-rpg-guestbook-sakasagaminoyura";
+  const GB_NAME_MAX = 20;
+  const GB_TEXT_MAX = 200;
+  const GB_KEEP = 40;
+
+  function gbClip(s, n) {
+    return Array.from(String(s || "")).slice(0, n).join("");
+  }
+
+  function gbClean(s) {
+    return String(s || "")
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "")
+      .trim();
+  }
+
+  function gbValidItem(item) {
+    if (!item || typeof item !== "object") return false;
+    if (typeof item.text !== "string" || !item.text) return false;
+    if (item.name != null && typeof item.name !== "string") return false;
+    if (typeof item.at !== "number" || !isFinite(item.at)) return false;
+    return true;
+  }
+
+  function gbNormalize(list) {
+    const out = [];
+    const seen = {};
+    (list || []).forEach((item) => {
+      if (!gbValidItem(item)) return;
+      const text = gbClip(gbClean(item.text), GB_TEXT_MAX);
+      if (!text) return;
+      const name = gbClip(gbClean(item.name || ""), GB_NAME_MAX);
+      const id = typeof item.id === "string" && item.id ? item.id.slice(0, 40) : "";
+      if (id && seen[id]) return;
+      if (id) seen[id] = true;
+      out.push({ id: id, name: name, text: text, at: item.at });
+    });
+    out.sort((a, b) => b.at - a.at);
+    return out.slice(0, GB_KEEP);
+  }
+
+  function gbFetchWall() {
+    return fetch(GB_BASE + "/wall", { cache: "no-store" })
+      .then((res) => {
+        if (res.status === 404) return { comments: [] };
+        if (!res.ok) throw new Error("load");
+        return res.json();
+      })
+      .then((data) => {
+        const list = data && Array.isArray(data.comments) ? data.comments : [];
+        return gbNormalize(list);
+      });
+  }
+
+  function gbSaveWall(comments) {
+    return fetch(GB_BASE + "/wall", {
+      method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ comments: comments }),
+    }).then((res) => {
+      if (!res.ok) throw new Error("save");
+    });
+  }
+
+  function gbTouch() {
+    fetch(GB_BASE + "/meta/touch", {
+      method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ at: Date.now() }),
+    }).catch(() => {});
+  }
+
+  function gbRender(list) {
+    const box = $("#gb-list");
+    if (!box) return;
+    box.textContent = "";
+    if (!list.length) {
+      const empty = document.createElement("p");
+      empty.className = "gb-empty";
+      empty.textContent = "まだ感想はありません。";
+      box.appendChild(empty);
+      return;
+    }
+    list.forEach((item) => {
+      const art = document.createElement("article");
+      art.className = "gb-item";
+      const who = document.createElement("p");
+      who.className = "gb-who";
+      const name = document.createElement("span");
+      name.className = "gb-name";
+      name.textContent = item.name || "名無し";
+      const time = document.createElement("time");
+      time.className = "gb-time";
+      try {
+        time.textContent = new Date(item.at).toLocaleString("ja-JP");
+      } catch (e) {
+        time.textContent = "";
+      }
+      who.appendChild(name);
+      who.appendChild(time);
+      const text = document.createElement("p");
+      text.className = "gb-text";
+      text.textContent = item.text;
+      art.appendChild(who);
+      art.appendChild(text);
+      box.appendChild(art);
+    });
+  }
+
+  function gbSetStatus(msg) {
+    const el = $("#gb-status");
+    if (el) el.textContent = msg || "";
+  }
+
+  function loadGuestbook() {
+    gbSetStatus("読み込み中…");
+    gbTouch();
+    return gbFetchWall()
+      .then((list) => {
+        gbRender(list);
+        gbSetStatus("");
+        return list;
+      })
+      .catch(() => {
+        gbSetStatus("読み込めませんでした。少し待って、もう一度開いてください。");
+      });
+  }
+
+  function gbUpdateCount() {
+    const text = $("#gb-text");
+    const count = $("#gb-count");
+    if (!text || !count) return;
+    count.textContent = Array.from(text.value).length + "/" + GB_TEXT_MAX;
+  }
+
+  function submitGuestbook(ev) {
+    if (ev) ev.preventDefault();
+    const nameEl = $("#gb-name");
+    const textEl = $("#gb-text");
+    const send = $("#gb-send");
+    if (!textEl) return;
+    const name = gbClip(gbClean(nameEl ? nameEl.value : ""), GB_NAME_MAX);
+    const text = gbClip(gbClean(textEl.value), GB_TEXT_MAX);
+    if (!text) {
+      gbSetStatus("感想を書いてから送ってください。");
+      return;
+    }
+    const id = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+    const item = { id: id, name: name, text: text, at: Date.now() };
+    if (send) send.disabled = true;
+    gbSetStatus("送信中…");
+    function attempt(left) {
+      return gbFetchWall().then((list) => {
+        const next = gbNormalize([item].concat(list));
+        return gbSaveWall(next)
+          .then(() => gbFetchWall())
+          .then((saved) => {
+            const ok = saved.some((c) => c.id === id);
+            if (!ok && left > 0) return attempt(left - 1);
+            if (!ok) throw new Error("missing");
+            gbRender(saved);
+            textEl.value = "";
+            if (nameEl) nameEl.value = "";
+            gbUpdateCount();
+            gbSetStatus("感想を受け付けました。");
+          });
+      });
+    }
+    attempt(2)
+      .catch(() => {
+        gbSetStatus("送れませんでした。通信を確認して、もう一度押してください。");
+      })
+      .then(() => {
+        if (send) send.disabled = false;
+      });
+  }
+
+  function openGuestbook() {
+    showScreen("guestbook");
+    gbUpdateCount();
+    loadGuestbook();
+  }
+
   // ---------- Init UI bindings ----------
   function init() {
     $("#btn-new").onclick = newGame;
     $("#btn-continue").onclick = continueGame;
     const btnClear = $("#btn-clear");
     if (btnClear) btnClear.onclick = continueClearGame;
+    const btnGb = $("#btn-guestbook");
+    if (btnGb) btnGb.onclick = openGuestbook;
+    const btnGbBack = $("#btn-guestbook-back");
+    if (btnGbBack)
+      btnGbBack.onclick = () => {
+        showScreen("title");
+        refreshTitle();
+      };
+    const gbForm = $("#gb-form");
+    if (gbForm) gbForm.onsubmit = submitGuestbook;
+    const gbText = $("#gb-text");
+    if (gbText) gbText.addEventListener("input", gbUpdateCount);
     $("#btn-save").onclick = () => saveGame();
     $("#btn-title").onclick = () => {
       hideToast();
