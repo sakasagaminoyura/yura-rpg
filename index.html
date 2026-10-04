@@ -551,6 +551,36 @@ html, body {
 }
 .modal-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 
+/* Nest-attack notice: keep 閉じる on screen (phone + desktop) */
+.overlay.raid-urgent {
+  position: fixed;
+  z-index: 400;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+.overlay.raid-urgent .modal {
+  margin: 8px auto 24px;
+  max-height: none;
+}
+.overlay.raid-urgent .raid-close {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin-bottom: 12px;
+}
+.overlay.raid-urgent .modal-btns {
+  flex-direction: column;
+  align-items: stretch;
+}
+.overlay.raid-urgent .modal-btns .btn {
+  width: 100%;
+  min-height: 44px;
+}
+
 /* ===== Status toast ===== */
 .toast {
   position: absolute;
@@ -896,7 +926,8 @@ html, body {
 #screen-story,
 #screen-map,
 #screen-combat,
-#screen-explore {
+#screen-explore,
+#screen-story {
   min-height: 0;
   max-height: 100%;
   overflow-x: hidden;
@@ -2875,7 +2906,40 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     $("#overlay").classList.add("active");
   }
   function hideModal() {
-    $("#overlay").classList.remove("active");
+    const ov = $("#overlay");
+    if (ov) {
+      ov.classList.remove("active");
+      ov.classList.remove("raid-urgent");
+    }
+    const top = document.getElementById("raid-close-top");
+    if (top) top.hidden = true;
+  }
+
+  /** Pure dismiss for the nest-attack notice. Does not spend a turn or start combat. */
+  let raidNoticeClosed = false;
+  function dismissRaidNotice() {
+    raidNoticeClosed = true;
+    hideModal();
+  }
+  function ensureRaidCloseButton() {
+    const modal = document.querySelector("#overlay .modal");
+    if (!modal) return null;
+    let btn = document.getElementById("raid-close-top");
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.id = "raid-close-top";
+      btn.type = "button";
+      modal.insertBefore(btn, modal.firstChild);
+    }
+    btn.hidden = false;
+    btn.className = "btn btn-block raid-close";
+    btn.textContent = "閉じる";
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dismissRaidNotice();
+    };
+    return btn;
   }
 
   // ---------- Story system ----------
@@ -4379,6 +4443,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     if (state.flags.specialNestOmen) return;
     if (state.location === "nest" && !(combat && combat.nestDefense)) return;
     if (!state.flags.nestAwake) return;
+    raidNoticeClosed = false;
     state.nestRaid = { turnsLeft: NEST_RAID_TURNS, special: false };
     const msg =
       "⚠ 巣の奇襲！" +
@@ -4577,6 +4642,10 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
 
   function showRaidUrgentOnMap() {
     if (!state.nestRaid) return;
+    const ov = $("#overlay");
+    if (!ov) return;
+    ov.classList.add("raid-urgent");
+    ensureRaidCloseButton();
     if (state.nestRaid.special) {
       const kn = specialNestKindLabel(state.nestRaid.kind);
       $("#modal-title").textContent = "⚠ 特別な気配！" + kn + "の襲撃！";
@@ -4594,23 +4663,45 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     }
     $("#modal-btns").innerHTML = "";
     const rush = document.createElement("button");
-    rush.className = "btn btn-danger";
+    rush.type = "button";
+    rush.className = "btn btn-danger btn-block";
     rush.textContent = "巣穴へ急行！";
-    rush.onclick = () => {
+    rush.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       hideModal();
       beginNestDefense();
     };
     const later = document.createElement("button");
-    later.className = "btn";
+    later.type = "button";
+    later.className = "btn btn-block";
     later.textContent = "まだ少し……（ターン経過）";
-    later.onclick = () => {
+    later.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       hideModal();
       if (tickNestRaid(1)) return;
       renderMap();
       refreshAllHuds();
     };
-    $("#modal-btns").append(rush, later);
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "btn btn-block";
+    close.textContent = "閉じる";
+    close.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dismissRaidNotice();
+    };
+    $("#modal-btns").append(rush, later, close);
+    ov.onclick = (e) => {
+      if (!ov.classList.contains("raid-urgent") || !ov.classList.contains("active")) return;
+      if (e.target === ov) dismissRaidNotice();
+    };
     showModal();
+    const app = document.getElementById("app");
+    if (app) app.scrollTop = 0;
+    ov.scrollTop = 0;
   }
 
 
@@ -4739,6 +4830,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     state.flags.specialNestOmen = null;
     const kn = specialNestKindLabel(kind);
     const atNest = state.location === "nest" && !(combat && combat.nestDefense);
+    raidNoticeClosed = false;
     state.nestRaid = {
       turnsLeft: SPECIAL_NEST_RAID_TURNS,
       special: true,
@@ -6896,9 +6988,9 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     showScreen("map");
     renderMap();
     refreshAllHuds();
-    if (state.nestRaid && state.nestRaid.turnsLeft > 0) {
+    if (state.nestRaid && state.nestRaid.turnsLeft > 0 && !raidNoticeClosed) {
       setTimeout(() => {
-        if (state.nestRaid && $("#screen-map").classList.contains("active")) {
+        if (state.nestRaid && !raidNoticeClosed && $("#screen-map").classList.contains("active")) {
           showRaidUrgentOnMap();
         }
       }, 80);
@@ -8867,6 +8959,14 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       };
 
     document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        const ov = $("#overlay");
+        if (ov && ov.classList.contains("active") && ov.classList.contains("raid-urgent")) {
+          e.preventDefault();
+          dismissRaidNotice();
+          return;
+        }
+      }
       const worldMapView = $("#world-map-view");
       if (worldMapView && worldMapView.classList.contains("active")) {
         if (e.key === "Escape") closeWorldMap();
