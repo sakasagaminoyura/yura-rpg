@@ -5975,9 +5975,24 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     }
     updateExploreAreaChrome();
     if ((explore.mapId === "overworld" || explore.mapId === "forest") && inNorthWoods(explore.y)) {
-      if (!state.flags.northWoodsEntered) {
+      if (!state.flags.northWoodsSpoken) {
+        state.flags.northWoodsSpoken = true;
         state.flags.northWoodsEntered = true;
-        toast("北の森に入った。強い野良妖怪が跋扈している。");
+        saveExploreResume();
+        state._resumeExploreAfterStory = "overworld";
+        startStory([
+          {
+            speaker: "結羅",
+            text: "この森は…何…？　桁違いの妖力をいくつも感じる…。引き返した方がいい…？",
+            img: ASSETS.dialogue,
+          },
+          {
+            speaker: "結羅",
+            text: "いや、やっぱり、引き返すのはダメね。あたしは不死身。相手が誰であれ、死ぬはずが無いわ。このまま進みましょう。",
+            img: ASSETS.dialogue,
+          },
+        ]);
+        return;
       }
     }
     const tile = explore.tiles[explore.y][explore.x];
