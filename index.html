@@ -2443,6 +2443,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         return false;
       }
       const parsed = JSON.parse(raw);
+      combDeathActive = false;
       applyLoadedSave(parsed);
       toast(key === CLEAR_KEY ? "クリア後データをロードしました" : "ロードしました（冒険中）");
       return true;
@@ -2553,6 +2554,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   }
 
   function refreshAllHuds() {
+    if (enforceCombDeath()) return;
     $$(".hud").forEach(updateHud);
     updateExploreObjective();
   }
@@ -2565,22 +2567,100 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   function checkGameOver() {
     // 真の敗北は魂櫛破壊のみ（フィールド服装0は羞恥逃亡。巣防衛のみ裸続行）
     if (state.player.comb <= 0) {
-      showGameOver("魂櫛が砕け散った……魂の器が失われた。結羅の永生はここで終わる。");
+      soulCombDeath();
       return true;
     }
     return false;
   }
 
+  /**
+   * 魂櫛0＝その場で死亡（どの経路でも最優先）。
+   * 奇襲・戦闘・保留中の物語をすべて止め、死亡イラスト → GAME OVER → タイトル／巣穴で復活。
+   */
+  let combDeathActive = false;
+  function soulCombDeath() {
+    if (combDeathActive) return;
+    combDeathActive = true;
+    state.player.comb = 0;
+    state.nestRaid = null; // 奇襲バナー・急行ボタンを確実に消す
+    raidNoticeClosed = false;
+    state.inCombat = false;
+    if (combat && combat._timers) combat._timers.forEach((id) => clearTimeout(id));
+    if (combat) combat.finished = true;
+    combat = null;
+    pendingVictory = null;
+    explore = null;
+    state._afterStoryCombat = null;
+    state._resumeNestDefense = null;
+    state._nestDefeatOutcome = null;
+    state._nestDefenseExpGranted = null;
+    state._pendingClothesRestore = null;
+    state._resumeExploreAfterStory = null;
+    victoryHold = 0;
+    heldStoryLines = null;
+    hideModal();
+    state._awaySoulcombGameOver = true;
+    startStory([
+      {
+        speaker: "結羅",
+        text: "ああ…魂櫛が破壊された…そんな…まだ死にたくない…。いや、オシッコ漏れてる…嘘でしょ…こんな死に方はイヤ…誰か助けて…。",
+        img: ASSETS.death,
+      },
+      {
+        speaker: "",
+        text: "魂櫛が砕け散り、逆髪の結羅の魂も破壊された。美しい鬼である結羅の生命はここで終わる。",
+        img: ASSETS.death,
+      },
+    ]);
+    refreshAllHuds();
+  }
+
+  /** 魂櫛0のまま遊べる状態を残さない（読込・HUD更新時の保険）。 */
+  function enforceCombDeath() {
+    if (combDeathActive) return false;
+    if (!state || !state.player || !(state.player.comb <= 0)) return false;
+    const title = document.getElementById("screen-title");
+    if (title && title.classList.contains("active")) return false;
+    if (combat) {
+      // 戦闘処理の途中では同期的に戦闘を壊さず、直後に死亡させる
+      setTimeout(() => {
+        if (!combDeathActive && state.player.comb <= 0) soulCombDeath();
+      }, 0);
+      return false;
+    }
+    soulCombDeath();
+    return true;
+  }
+
   function showGameOver(reason) {
     state.nestRaid = null;
+    if (state.player.comb <= 0) combDeathActive = true; // GAME OVER中に二重の死亡演出を出さない
+    const dch = $("#dialogue-choices");
+    if (dch && state.player.comb <= 0) dch.innerHTML = "";
+    const ov0 = $("#overlay");
+    if (ov0) {
+      ov0.classList.remove("raid-urgent");
+      ov0.onclick = null;
+    }
+    const top0 = document.getElementById("raid-close-top");
+    if (top0) top0.hidden = true;
     $("#modal-title").textContent = "GAME OVER";
     $("#modal-body").textContent = reason + "\n\n巣穴からやり直すこともできる。";
+    if (state.player.comb <= 0) {
+      const dimg = document.createElement("img");
+      dimg.src = ASSETS.death;
+      dimg.alt = "結羅の死";
+      dimg.className = "gameover-death-img";
+      dimg.style.cssText = "display:block;max-width:100%;max-height:45vh;margin:0.6em auto 0;border-radius:6px;";
+      $("#modal-body").appendChild(dimg);
+    }
     $("#modal-btns").innerHTML = "";
     const b1 = document.createElement("button");
     b1.className = "btn btn-gold";
     b1.textContent = "タイトルへ";
     b1.onclick = () => {
       hideModal();
+      combDeathActive = false;
       showScreen("title");
       refreshTitle();
     };
@@ -2589,6 +2669,8 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     b2.textContent = "巣穴で復活";
     b2.onclick = () => {
       hideModal();
+      combDeathActive = false;
+      state.nestRaid = null;
       state.player.clothes = Math.floor(state.player.maxClothes * 0.6);
       state.player.maxComb = MAX_COMB;
       state.player.comb = MAX_COMB;
@@ -2645,6 +2727,12 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
    * 全裸ポートレート＋選択：死 / 命乞い（奉仕→毒で逆転勝利）
    */
   function showNestDefeatChoice() {
+    // 魂櫛0なら選択肢を出さず、その場で死亡（最優先）
+    if (state.player.comb <= 0) {
+      soulCombDeath();
+      return;
+    }
+    state.nestRaid = null; // 敗北選択中に奇襲バナーを残さない
     state.inCombat = false;
     if (combat && combat._timers) combat._timers.forEach((id) => clearTimeout(id));
     combat = null;
@@ -3035,6 +3123,8 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
 
   function advanceStory() {
     if (awaitingChoice) return;
+    // GAME OVER表示中は裏の物語を進めない（魂櫛0で遊び続けられないように）
+    if (combDeathActive && $("#overlay").classList.contains("active")) return;
     if (!$("#screen-story").classList.contains("active")) return;
     storyIdx++;
     renderStoryLine();
@@ -4443,6 +4533,10 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   }
 
   function startNestRaid(reason) {
+    if (state.player && state.player.comb <= 0) {
+      soulCombDeath();
+      return;
+    }
     // Nest raids are locked until MIN_NEST_RAID_LEVEL, including all callers and old saves.
     if (!canTriggerNestRaid()) return;
     if (state.nestRaid) return;
@@ -4479,6 +4573,10 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
 
   /** Decrement raid urgency. Returns true if comb was destroyed. */
   function tickNestRaid(n) {
+    if (state.player && state.player.comb <= 0) {
+      soulCombDeath();
+      return true;
+    }
     if (!state.nestRaid) return false;
     if (combat && combat.nestDefense) return false; // 防衛戦中はタイマー停止
     state.nestRaid.turnsLeft -= n == null ? 1 : n;
@@ -4494,23 +4592,8 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   }
 
   function failNestRaid() {
-    state.nestRaid = null;
-    state.player.comb = 0;
-    state.inCombat = false;
-    if (combat && combat._timers) combat._timers.forEach((id) => clearTimeout(id));
-    combat = null;
-    pendingVictory = null;
-    explore = null;
-    hideModal();
-    // 外出先で魂櫛破壊：専用イラスト＋台詞 → Game Over → タイトル
-    state._awaySoulcombGameOver = true;
-    startStory([
-      {
-        speaker: "結羅",
-        text: "ああ…魂櫛が破壊された…そんな…まだ死にたくない…。いや、オシッコ漏れてる…嘘でしょ…こんな死に方はイヤ…誰か助けて…。",
-        img: ASSETS.gameoverSoulcomb,
-      },
-    ]);
+    // 外出先で魂櫛破壊：その場で死亡（死亡イラスト → Game Over → タイトル）
+    soulCombDeath();
   }
 
   /** After a field battle win (away from nest): about once per in-game day. */
@@ -8082,8 +8165,9 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     } catch (err) {
       console.error("onLose error", err);
     }
-    // 巣防衛は onLose（敗北選択肢）側で処理。魂櫛0でも即ゲームオーバーにしない
-    if (!wasNestDefense) checkGameOver();
+    // 魂櫛0は経路を問わず即死亡（巣防衛の敗北選択肢より優先）
+    if (!combDeathActive && state.player.comb <= 0) checkGameOver();
+    void wasNestDefense;
   }
 
   function addLog(msg, cls) {
@@ -8549,7 +8633,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         state.inCombat = false;
         combat = null;
         pendingVictory = null;
-        showNestDefeatChoice();
+        soulCombDeath();
       }, 500);
       return;
     }
@@ -8645,6 +8729,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   }
 
   function newGame() {
+    combDeathActive = false;
     state = defaultState();
     exploreHairMode = null;
     toast("ニューゲーム");
@@ -8657,6 +8742,11 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
 
   function continueGame() {
     if (!loadGame(SAVE_KEY)) return;
+    if (state.player.comb <= 0) {
+      // 魂櫛0のセーブ：再開させず、その場で死亡
+      soulCombDeath();
+      return;
+    }
     if (state.flags.ending) {
       // Should be rare after migrateSaveSlots; still show ending without wiping mid
       triggerEnding(state.flags.ending);
@@ -8667,6 +8757,10 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
 
   function continueClearGame() {
     if (!loadGame(CLEAR_KEY)) return;
+    if (state.player.comb <= 0) {
+      soulCombDeath();
+      return;
+    }
     if (state.flags.ending) {
       triggerEnding(state.flags.ending);
       return;
