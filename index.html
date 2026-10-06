@@ -8601,7 +8601,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         if (cp) cp.src = ASSETS.nude;
         $$(".hud-portrait").forEach((img) => (img.src = ASSETS.nude));
         if (defendingNest) {
-          addLog("着物が破け全裸に……！ それでも魂櫛がある限り戦い続ける！", "sys");
+          addLog("着物が破け全裸に……！ もう巣を守りきれない……！", "sys");
         } else {
           addLog("着物が破け全裸に……！ 恥ずかしさに耐えきれない……！", "sys");
         }
@@ -8634,6 +8634,29 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         combat = null;
         pendingVictory = null;
         soulCombDeath();
+      }, 500);
+      return;
+    }
+
+    // 巣防衛（ふだん／竜・奈落）：魂櫛が残っていても服装HP0で敗北 → 死を選ぶ／命乞い
+    // （魂櫛0は上の即死亡が優先。巣の中では羞恥逃亡はしない）
+    if (defendingNest && p.clothes <= 0) {
+      addLog("着物を失い、進退窮まった……！", "sys");
+      const cp = $("#combat-portrait");
+      if (cp) cp.src = ASSETS.nude;
+      $$(".hud-portrait").forEach((img) => (img.src = ASSETS.nude));
+      combat.turn = "ended";
+      renderCombat();
+      combatTimeout(() => {
+        if (combat && !combat.finished) {
+          combat.finished = true;
+          if (combat._timers) combat._timers.forEach((id) => clearTimeout(id));
+        }
+        state.inCombat = false;
+        combat = null;
+        pendingVictory = null;
+        if (state.player.comb <= 0) soulCombDeath();
+        else showNestDefeatChoice();
       }, 500);
       return;
     }
