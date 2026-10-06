@@ -1091,8 +1091,10 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   padding: 10px 12px;
   border-radius: 2px;
 }
-.gb-who { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; margin-bottom: 6px; }
-.gb-name { color: var(--gold); font-size: 0.85rem; overflow-wrap: anywhere; }
+.gb-who { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; margin-bottom: 6px; flex-wrap: wrap; }
+.gb-who-main { display: flex; gap: 6px; align-items: baseline; min-width: 0; flex: 1 1 auto; }
+.gb-no { color: var(--text-dim); font-size: 0.72rem; flex: 0 0 auto; letter-spacing: 0.04em; }
+.gb-name { color: var(--gold); font-size: 0.85rem; overflow-wrap: anywhere; min-width: 0; }
 .gb-time { color: var(--text-dim); font-size: 0.72rem; flex: 0 0 auto; }
 .gb-text { font-size: 0.92rem; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 #btn-guestbook-back { margin-top: 4px; }
@@ -8695,6 +8697,27 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     return isFinite(t) ? t : 0;
   }
 
+  function gbCmpId(a, b) {
+    const na = Number(a);
+    const nb = Number(b);
+    if (isFinite(na) && isFinite(nb) && String(na) === String(a) && String(nb) === String(b)) {
+      return na - nb;
+    }
+    return String(a || "").localeCompare(String(b || ""));
+  }
+
+  // Serial No.1 = oldest top-level post. Display stays newest-first.
+  // Numbers stay stable as new posts arrive; a delete would renumber later ones.
+  function gbNumberAndOrder(list) {
+    const out = list.slice();
+    out.sort((a, b) => (a.at - b.at) || gbCmpId(a.id, b.id));
+    out.forEach((item, i) => {
+      item.no = i + 1;
+    });
+    out.sort((a, b) => (b.at - a.at) || gbCmpId(b.id, a.id));
+    return out;
+  }
+
   function gbFetchWall() {
     return fetch(GB_API + "?user=" + encodeURIComponent(GB_OWNER), { cache: "no-store" }).then((res) => {
       if (!res.ok) throw new Error("load");
@@ -8710,8 +8733,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         const id = row.id == null ? "" : String(row.id);
         out.push({ id: id, name: name, text: text, at: gbWhen(row.created_at) });
       });
-      out.sort((a, b) => b.at - a.at);
-      return out;
+      return gbNumberAndOrder(out);
     });
   }
 
@@ -8749,9 +8771,18 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       art.className = "gb-item";
       const who = document.createElement("p");
       who.className = "gb-who";
+      const main = document.createElement("span");
+      main.className = "gb-who-main";
+      if (item.no) {
+        const no = document.createElement("span");
+        no.className = "gb-no";
+        no.textContent = "No." + item.no;
+        main.appendChild(no);
+      }
       const name = document.createElement("span");
       name.className = "gb-name";
       name.textContent = item.name || "名無し";
+      main.appendChild(name);
       const time = document.createElement("time");
       time.className = "gb-time";
       try {
@@ -8759,7 +8790,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       } catch (e) {
         time.textContent = "";
       }
-      who.appendChild(name);
+      who.appendChild(main);
       who.appendChild(time);
       const text = document.createElement("p");
       text.className = "gb-text";
@@ -8815,7 +8846,9 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         return gbFetchWall()
           .catch(() => [])
           .then((saved) => {
-            if (!saved.some((c) => c.name === name && c.text === text)) saved = [mine].concat(saved);
+            if (!saved.some((c) => c.name === name && c.text === text)) {
+              saved = gbNumberAndOrder([mine].concat(saved));
+            }
             gbRender(saved);
             textEl.value = "";
             if (nameEl) nameEl.value = "";
