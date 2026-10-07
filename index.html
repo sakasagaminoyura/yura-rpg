@@ -1992,7 +1992,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         specialNestOmen: null, // { kind: 'dragon'|'naraku', day: number } while omen active
         lastSpecialNestDay: 0, // day omen fired or raid resolved (cooldown anchor)
         specialNestWins: 0, // times special nest defense cleared
-        overworldMapRev: 2, // 2 = 北側に北の森を足した歩行マップ
+        overworldMapRev: 3, // 3 = 北の森を別マップ5層化（全体マップは南フィールドのみ）
       },
       player: {
         name: "結羅",
@@ -2418,7 +2418,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     if (state.flags.shardHunt == null) {
       state.flags.shardHunt = !!state.flags.inuyashaSlain;
     }
-    // 旧セーブ（48×36）の歩行座標を、北側拡張ぶん下へずらす。新規は overworldMapRev=2。
+    // 旧セーブ（48×36）の歩行座標を、北側拡張ぶん下へずらす。
     if (!parsed.flags || parsed.flags.overworldMapRev == null || parsed.flags.overworldMapRev < 2) {
       const bumpExploreY = (pos) => {
         if (!pos || pos.y == null) return;
@@ -2429,6 +2429,23 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       bumpExploreY(state._exploreResume);
       bumpExploreY(state._forestExploreResume);
       state.flags.overworldMapRev = 2;
+    }
+    // rev3: 北の森を別マップ化したので、北側16行ぶんを取り除く（座標を戻す）。
+    if (state.flags.overworldMapRev < 3) {
+      const unbumpNorthStrip = (pos) => {
+        if (!pos || pos.y == null) return;
+        const mid = pos.mapId;
+        if (mid && mid !== "overworld" && mid !== "forest") return;
+        if ((pos.y | 0) >= 16) pos.y = (pos.y | 0) - 16;
+        else {
+          // 旧北の森内 → 巣の北ゲート付近へ
+          pos.x = 5;
+          pos.y = 2;
+        }
+      };
+      unbumpNorthStrip(state._exploreResume);
+      unbumpNorthStrip(state._forestExploreResume);
+      state.flags.overworldMapRev = 3;
     }
   }
 
@@ -3170,8 +3187,10 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     state._resumeNestDefense = null;
     // Walk intro → return to explore overworld
     if (state._resumeExploreAfterStory) {
+      let mid = state._resumeExploreAfterStory;
       state._resumeExploreAfterStory = null;
-      enterExplore("overworld", { resume: true });
+      if (mid === "forest") mid = "overworld";
+      enterExplore(mid, { resume: true });
       return;
     }
     // After story: nest is menu-only hub (no walkable interior)
@@ -3179,8 +3198,8 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       openNestHub();
       return;
     }
-    if (state.location === "forest" || state.location === "overworld") {
-      enterExplore("overworld", { resume: true });
+    if (state.location === "forest" || state.location === "overworld" || northWoodsLayerOf(state.location) > 0) {
+      enterExplore(state.location === "forest" ? "overworld" : state.location, { resume: true });
       return;
     }
     // Village/story locations → return near them on overworld when possible
@@ -5482,33 +5501,20 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       placeLandmark(tiles, pos[0], pos[1], ch, pos[2]);
       landmarks.push({ ch: ch, x: pos[0], y: pos[1], shape: pos[2] });
     }
-    // 北の森: prepend rows north of the old border. Story landmarks keep their
-    // relative layout (shifted south by NORTH). A 3-wide road leaves the nest northward.
-    const NORTH = 16;
-    const northRows = [];
-    for (let y = 0; y < NORTH; y++) {
-      const row = [];
-      for (let x = 0; x < W; x++) {
-        if (y === 0 || x === 0 || x === W - 1) row.push("#");
-        else {
-          const n = (x * 19 + y * 23) % 100;
-          if (n < 14) row.push("#");
-          else if (n < 86) row.push("g");
-          else row.push(".");
-        }
+    // 北の森は別マップ（5層）。全体マップ／歩行フィールドは南のみを保つ。
+    // 巣の真北にゲート「Z」→ 北の森1層へ（巣エプロンのあとでゲートを置く）。
+    carvePath(tiles, 5, 4, 5, 1, ".");
+    for (let y = 1; y <= 3; y++) {
+      for (let x = 3; x <= 7; x++) {
+        if (tiles[y][x] === "#" || tiles[y][x] === "g") tiles[y][x] = ".";
       }
-      northRows.push(row);
     }
-    const field = northRows.concat(tiles);
-    for (let i = 0; i < landmarks.length; i++) landmarks[i].y += NORTH;
-    carvePath(field, 5, 4 + NORTH, 5, 7, ".");
-    carvePath(field, 5, 7, 24, 7, ".");
-    carvePath(field, 24, 7, 40, 5, ".");
-    carvePath(field, 24, 7, 14, 3, ".");
-    carvePath(field, 24, 7, 36, 12, ".");
-    placeLandmark(field, 24, 7, "Z", "forest");
-    landmarks.push({ ch: "Z", x: 24, y: 7, shape: "forest" });
-    const rows = field.map((r) => r.join(""));
+    // Gate last so nest apron cannot erase it
+    tiles[1][4] = ".";
+    tiles[1][5] = "Z";
+    tiles[1][6] = ".";
+    landmarks.push({ ch: "Z", x: 5, y: 1, shape: "exit" });
+    const rows = tiles.map((r) => r.join(""));
     const starts = {
       // south of nest circle (not on N tiles)
       default: [5, 7],
@@ -5535,10 +5541,9 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       kaede: [36, 12],
       map: [22, 17],
       overworld: [5, 7],
+      northwoods: [5, 2], // return from 北の森1層
+      northwoods1: [5, 2],
     };
-    Object.keys(starts).forEach((k) => {
-      starts[k] = [starts[k][0], starts[k][1] + NORTH];
-    });
     return {
       id: "overworld",
       name: "フィールド",
@@ -5552,7 +5557,59 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     };
   }
 
-  function buildLargeForest() {
+  /** Compact 北の森 layer map (1..5). South gate X / north gate Z. */
+  function buildNorthWoodsLayer(layer) {
+    const W = 28;
+    const H = 18;
+    const tiles = [];
+    for (let y = 0; y < H; y++) {
+      const row = [];
+      for (let x = 0; x < W; x++) {
+        if (y === 0 || x === 0 || y === H - 1 || x === W - 1) row.push("#");
+        else {
+          const n = (x * 19 + y * 23 + layer * 41) % 100;
+          if (n < 12) row.push("#");
+          else if (n < 80) row.push("g");
+          else row.push(".");
+        }
+      }
+      tiles.push(row);
+    }
+    const mid = (W / 2) | 0;
+    // Spine + side paths so each layer feels walkable
+    carvePath(tiles, mid, H - 2, mid, 1, ".");
+    carvePath(tiles, 4, (H / 2) | 0, W - 5, (H / 2) | 0, ".");
+    carvePath(tiles, 5, 4, mid, 8, ".");
+    carvePath(tiles, mid, 8, W - 6, 5, ".");
+    carvePath(tiles, 6, H - 5, mid, H - 3, ".");
+    carvePath(tiles, mid, H - 4, W - 7, H - 6, ".");
+    // Clear apron around gates
+    fillRectTiles(tiles, mid - 2, 1, mid + 2, 3, ".");
+    fillRectTiles(tiles, mid - 2, H - 4, mid + 2, H - 2, ".");
+    tiles[H - 2][mid] = "X"; // south → previous / overworld
+    tiles[1][mid] = "Z"; // north → deeper (layer 5: dead end message)
+    const rows = tiles.map((r) => r.join(""));
+    return {
+      id: "northwoods" + layer,
+      name: "北の森" + layer + "層",
+      layer: layer,
+      safe: false,
+      grassChance: 0.2,
+      pathChance: 0.07,
+      rows: rows,
+      landmarks: [],
+      starts: {
+        default: [mid, H - 3],
+        south: [mid, H - 3],
+        north: [mid, 2],
+        overworld: [mid, H - 3],
+        deeper: [mid, 2],
+      },
+      blockMsg: "深い木々が阻む……",
+    };
+  }
+
+    function buildLargeForest() {
     const W = 40;
     const H = 30;
     const tiles = [];
@@ -5651,14 +5708,35 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     };
   }
 
-  // Single walkable field: forest map builders kept for reference but unused.
+  // South field + separate 北の森 5 layers. forest map builder kept for reference.
   const EXPLORE_OVERWORLD = buildLargeOverworld();
+  const EXPLORE_NORTHWOODS = {
+    1: buildNorthWoodsLayer(1),
+    2: buildNorthWoodsLayer(2),
+    3: buildNorthWoodsLayer(3),
+    4: buildNorthWoodsLayer(4),
+    5: buildNorthWoodsLayer(5),
+  };
   const EXPLORE_MAPS = {
     nest: buildLargeNest(),
     overworld: EXPLORE_OVERWORLD,
     // Compat: old saves / calls to "forest" land on the unified overworld
     forest: EXPLORE_OVERWORLD,
+    northwoods1: EXPLORE_NORTHWOODS[1],
+    northwoods2: EXPLORE_NORTHWOODS[2],
+    northwoods3: EXPLORE_NORTHWOODS[3],
+    northwoods4: EXPLORE_NORTHWOODS[4],
+    northwoods5: EXPLORE_NORTHWOODS[5],
   };
+
+  function northWoodsLayerOf(mapId) {
+    const m = /^northwoods(\d+)$/.exec(mapId || "");
+    return m ? m[1] | 0 : 0;
+  }
+
+  function isNorthWoodsMap(mapId) {
+    return northWoodsLayerOf(mapId) > 0;
+  }
 
   // ---------- Pixel-art explore (procedural 16×16 tiles) ----------
   const PX = 16;
@@ -5680,13 +5758,18 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     C: "城", J: "死鏡の沼", W: "骨喰いの井戸", G: "風穴の辻", K: "風の原",
     P: "西の峠", Q: "楓の里", S: "霧の社", U: "母の幻影", L: "狼の崖",
     T: "退治屋の里", D: "影の森", Y: "白霊の道", E: "七人塚", H: "決戦の丘",
-    Z: "北の森",
+    Z: "北の森入口",
   };
 
   const EXPLORE_LEGEND = {
     nest: "巣はメニューのみ（歩行なし）",
-    overworld: "大フィールド（森含む）　巣の北の通路の先は北の森（Lv20〜50の野良。竜も普通に出る）　黒髪玉＝巣　F＝退治屋　南の草（稀に龍）",
-    forest: "大フィールド（森含む）　巣の北の通路の先は北の森（Lv20〜50の野良。竜も普通に出る）　黒髪玉＝巣　F＝退治屋　南の草（稀に龍）",
+    overworld: "大フィールド（森含む）　巣の北ゲート＝北の森1〜5層（最奥約Lv1200）　黒髪玉＝巣　F＝退治屋　南の草（稀に龍）",
+    forest: "大フィールド（森含む）　巣の北ゲート＝北の森1〜5層（最奥約Lv1200）　黒髪玉＝巣　F＝退治屋　南の草（稀に龍）",
+    northwoods1: "北の森1層　南＝巣へ　北＝2層　野良Lv20〜80（竜も出る）",
+    northwoods2: "北の森2層　南＝1層　北＝3層　野良Lv80〜250",
+    northwoods3: "北の森3層　南＝2層　北＝4層　野良Lv250〜500",
+    northwoods4: "北の森4層　南＝3層　北＝5層　野良Lv500〜900",
+    northwoods5: "北の森5層（最奥）　南＝4層　野良Lv900〜1200",
   };
 
   function pxFill(g, color, rects) {
@@ -6156,43 +6239,37 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       }
     }
     updateExploreAreaChrome();
-    if ((explore.mapId === "overworld" || explore.mapId === "forest") && inNorthWoods(explore.y)) {
-      if (!state.flags.northWoodsSpoken) {
-        state.flags.northWoodsSpoken = true;
-        state.flags.northWoodsEntered = true;
-        saveExploreResume();
-        state._resumeExploreAfterStory = "overworld";
-        startStory([
-          {
-            speaker: "結羅",
-            text: "この森は…何…？　桁違いの妖力をいくつも感じる…。引き返した方がいい…？",
-            img: ASSETS.dialogue,
-          },
-          {
-            speaker: "結羅",
-            text: "いや、やっぱり、引き返すのはダメね。あたしは不死身。相手が誰であれ、死ぬはずが無いわ。このまま進みましょう。",
-            img: ASSETS.dialogue,
-          },
-        ]);
-        return;
-      }
-    }
     const tile = explore.tiles[explore.y][explore.x];
     if (handleExploreTile(tile)) return;
     maybeExploreRandomEncounter(tile);
   }
 
-  /** Rows added north of the old field. y < this is 北の森. */
-  function inNorthWoods(y) {
-    return y < 16;
-  }
-
   function updateExploreAreaChrome() {
     const title = document.getElementById("explore-title");
     if (!title || !explore) return;
-    const north =
-      (explore.mapId === "overworld" || explore.mapId === "forest") && inNorthWoods(explore.y);
-    title.textContent = (north ? "北の森" : explore.name || "探索") + "・探索";
+    title.textContent = (explore.name || "探索") + "・探索";
+  }
+
+  function playNorthWoodsEntryDialogue() {
+    if (!explore || northWoodsLayerOf(explore.mapId) !== 1) return false;
+    if (state.flags.northWoodsSpoken) return false;
+    state.flags.northWoodsSpoken = true;
+    state.flags.northWoodsEntered = true;
+    saveExploreResume();
+    state._resumeExploreAfterStory = "northwoods1";
+    startStory([
+      {
+        speaker: "結羅",
+        text: "この森は…何…？　桁違いの妖力をいくつも感じる…。引き返した方がいい…？",
+        img: ASSETS.dialogue,
+      },
+      {
+        speaker: "結羅",
+        text: "いや、やっぱり、引き返すのはダメね。あたしは不死身。相手が誰であれ、死ぬはずが無いわ。このまま進みましょう。",
+        img: ASSETS.dialogue,
+      },
+    ]);
+    return true;
   }
 
   function getExploreCanvas() {
@@ -6328,15 +6405,34 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     }
   }
 
+  function getActiveWorldMapId() {
+    if (explore && explore.mapId) {
+      if (isNorthWoodsMap(explore.mapId)) return explore.mapId;
+      if (explore.mapId === "overworld" || explore.mapId === "forest") return "overworld";
+    }
+    const pos = state._exploreResume || state._forestExploreResume;
+    if (pos && pos.mapId && isNorthWoodsMap(pos.mapId)) return pos.mapId;
+    return "overworld";
+  }
+
   function getWorldMapPlayerPosition() {
-    if (explore && (explore.mapId === "overworld" || explore.mapId === "forest")) {
+    const mapId = getActiveWorldMapId();
+    if (explore && explore.mapId === mapId) {
+      return { x: explore.x, y: explore.y };
+    }
+    if (explore && (mapId === "overworld") && (explore.mapId === "overworld" || explore.mapId === "forest")) {
       return { x: explore.x, y: explore.y };
     }
     const pos = state._exploreResume || state._forestExploreResume;
-    if (pos && pos.x != null && pos.y != null) return { x: pos.x, y: pos.y };
-    const start = state.location === "nest"
-      ? EXPLORE_OVERWORLD.starts.nest
-      : EXPLORE_OVERWORLD.starts.default;
+    if (pos && pos.x != null && pos.y != null) {
+      const pmid = pos.mapId || "overworld";
+      if (mapId === "overworld" && (pmid === "overworld" || pmid === "forest" || !pos.mapId)) {
+        return { x: pos.x, y: pos.y };
+      }
+      if (pmid === mapId) return { x: pos.x, y: pos.y };
+    }
+    const map = getExploreMap(mapId) || EXPLORE_OVERWORLD;
+    const start = (map.starts && (map.starts.default || map.starts.south)) || [1, 1];
     return { x: start[0], y: start[1] };
   }
 
@@ -6344,7 +6440,8 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     const canvas = document.getElementById("world-map-canvas");
     if (!canvas) return;
     ensureExploreArt();
-    const map = EXPLORE_OVERWORLD;
+    const mapId = getActiveWorldMapId();
+    const map = getExploreMap(mapId) || EXPLORE_OVERWORLD;
     const rows = map.rows;
     const h = rows.length;
     const w = rows[0].length;
@@ -6357,44 +6454,47 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     ctx.fillStyle = "#14281c";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    const sprMapId = isNorthWoodsMap(mapId) ? "overworld" : "overworld";
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
         const ch = rows[y][x];
-        const spr = isOverlayLandmarkChar(ch, "overworld")
+        const spr = isOverlayLandmarkChar(ch, sprMapId)
           ? exploreTileCache.path
-          : tileSpriteFor(ch, "overworld");
+          : tileSpriteFor(ch, sprMapId);
         ctx.drawImage(spr, ox + x * scale, oy + y * scale, scale + 0.5, scale + 0.5);
       }
     }
 
-    // Landmark labels stay readable at the overview scale.
-    const unlocked = (ch) => {
-      const ids = {
-        N: "nest", A: "villageA", V: "village", B: "villageB", F: "forest", O: "orchard",
-        C: "castle", J: "mirror", W: "well", G: "monkpath", K: "windfield", P: "pass",
-        Q: "kaede", S: "shrine", U: "mother", L: "cliff", T: "slayer", D: "shadow",
-        Y: "whitepath", E: "tomb", H: "hill",
+    // Landmark labels (south field only; layers have no story landmarks)
+    if (map.landmarks && map.landmarks.length) {
+      const unlocked = (ch) => {
+        const ids = {
+          N: "nest", A: "villageA", V: "village", B: "villageB", F: "forest", O: "orchard",
+          C: "castle", J: "mirror", W: "well", G: "monkpath", K: "windfield", P: "pass",
+          Q: "kaede", S: "shrine", U: "mother", L: "cliff", T: "slayer", D: "shadow",
+          Y: "whitepath", E: "tomb", H: "hill",
+        };
+        const loc = LOCATIONS.find((l) => l.id === ids[ch]);
+        return !loc || isLocUnlocked(loc);
       };
-      const loc = LOCATIONS.find((l) => l.id === ids[ch]);
-      return !loc || isLocUnlocked(loc);
-    };
-    ctx.font = "bold 12px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "bottom";
-    for (let i = 0; i < map.landmarks.length; i++) {
-      const lm = map.landmarks[i];
-      const label = WORLD_MAP_LABELS[lm.ch];
-      if (!label) continue;
-      const cx = ox + (lm.x + 0.5) * scale;
-      const cy = oy + (lm.y + 0.5) * scale;
-      const textW = ctx.measureText(label).width;
-      ctx.fillStyle = unlocked(lm.ch) ? "rgba(20, 12, 0, 0.88)" : "rgba(10, 10, 14, 0.78)";
-      ctx.fillRect(cx - textW / 2 - 4, cy - 19, textW + 8, 14);
-      ctx.strokeStyle = unlocked(lm.ch) ? "#d4af37" : "#687080";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(cx - textW / 2 - 4, cy - 19, textW + 8, 14);
-      ctx.fillStyle = unlocked(lm.ch) ? "#ffe9a0" : "#9aa0ad";
-      ctx.fillText(label, cx, cy - 7);
+      ctx.font = "bold 12px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      for (let i = 0; i < map.landmarks.length; i++) {
+        const lm = map.landmarks[i];
+        const label = WORLD_MAP_LABELS[lm.ch];
+        if (!label) continue;
+        const cx = ox + (lm.x + 0.5) * scale;
+        const cy = oy + (lm.y + 0.5) * scale;
+        const textW = ctx.measureText(label).width;
+        ctx.fillStyle = unlocked(lm.ch) ? "rgba(20, 12, 0, 0.88)" : "rgba(10, 10, 14, 0.78)";
+        ctx.fillRect(cx - textW / 2 - 4, cy - 19, textW + 8, 14);
+        ctx.strokeStyle = unlocked(lm.ch) ? "#d4af37" : "#687080";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(cx - textW / 2 - 4, cy - 19, textW + 8, 14);
+        ctx.fillStyle = unlocked(lm.ch) ? "#ffe9a0" : "#9aa0ad";
+        ctx.fillText(label, cx, cy - 7);
+      }
     }
 
     const player = getWorldMapPlayerPosition();
@@ -6429,7 +6529,13 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     view.classList.add("active");
     view.setAttribute("aria-hidden", "false");
     const caption = document.getElementById("world-map-caption");
-    if (caption) caption.textContent = "フィールド全域（北は北の森）。結羅の現在位置を赤丸で表示";
+    const mapId = getActiveWorldMapId();
+    const layer = northWoodsLayerOf(mapId);
+    if (caption) {
+      caption.textContent = layer
+        ? ("北の森" + layer + "層。結羅の現在位置を赤丸で表示")
+        : "フィールド全域（南フィールドのみ。北の森は別マップ）。結羅の現在位置を赤丸で表示";
+    }
     drawWorldMapCanvas();
   }
 
@@ -6506,7 +6612,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       enterMap();
       return;
     }
-    state.location = "overworld";
+    state.location = isNorthWoodsMap(mapId) ? mapId : "overworld";
     const built = buildExploreTiles(mapDef);
     let sx;
     let sy;
@@ -6522,13 +6628,11 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       const sameField =
         pos &&
         (posMid === mapId ||
-          posMid === "overworld" ||
-          posMid === "forest" ||
-          !posMid);
+          ((mapId === "overworld") && (posMid === "overworld" || posMid === "forest" || !posMid)));
       if (sameField && pos.x != null) {
         sx = pos.x;
         sy = pos.y;
-      } else if (explore && (explore.mapId === mapId || explore.mapId === "forest" || explore.mapId === "overworld")) {
+      } else if (explore && explore.mapId === mapId) {
         sx = explore.x;
         sy = explore.y;
       }
@@ -6584,10 +6688,12 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         "）カメラ追従。十字／WASDで歩く。"
     );
 
-    if (!state.flags.forestIntroSeen && !opts.resume && !opts.skipWalkIntro) {
+    if (!state.flags.forestIntroSeen && !opts.resume && !opts.skipWalkIntro && mapId === "overworld") {
       state._resumeExploreAfterStory = "overworld";
       playScene("forest_walk_intro");
+      return;
     }
+    if (!opts.resume && playNorthWoodsEntryDialogue()) return;
   }
 
   /** Compat: forest entry → unified overworld near woods */
@@ -6892,7 +6998,34 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         return true;
       }
       if (tile === "Z") {
-        setExploreMsg("北の森の奥。強力な野良妖怪が跋扈している。");
+        setExploreMsg("北の森への通路……妖気が濃い。");
+        leaveExploreToMap("northwoods1", "south");
+        return true;
+      }
+      return false;
+    }
+
+    // ---- 北の森 layers ----
+    const nwLayer = northWoodsLayerOf(mid);
+    if (nwLayer > 0) {
+      if (tile === "X") {
+        if (nwLayer <= 1) {
+          setExploreMsg("巣の近くのフィールドへ戻る。");
+          leaveExploreToMap("overworld", "northwoods");
+        } else {
+          setExploreMsg("北の森" + (nwLayer - 1) + "層へ戻る。");
+          leaveExploreToMap("northwoods" + (nwLayer - 1), "north");
+        }
+        return true;
+      }
+      if (tile === "Z") {
+        if (nwLayer >= 5) {
+          setExploreMsg("これより奥はない……北の森の最深部だ。");
+          toast("北の森5層・最深部");
+          return true;
+        }
+        setExploreMsg("北の森" + (nwLayer + 1) + "層へ進む。");
+        leaveExploreToMap("northwoods" + (nwLayer + 1), "south");
         return true;
       }
       return false;
@@ -6901,18 +7034,39 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     return false;
   }
 
-  function rollNorthWoodsFoe() {
-    // 北の森だけの通常遭遇。各枠は同じ重み（竜は希少ポップではない）。
-    // レベルは約20〜50。名前有りの物語ボスではない。南フィールドの稀なLv45龍とは別個体。
-    // ステは各種の旧基準（ref）から、レベル差ごとに hp+10 / atk+1 / defは2Lvごと+1 / spdは3Lvごと+1。
-    const pool = [
-      { name: "骨狼", min: 20, max: 26, weight: 1, icon: "🦴", ref: 24, hp: 140, atk: 26, def: 6, spd: 18 },
-      { name: "夜這い蜘蛛", min: 25, max: 32, weight: 1, icon: "🕷️", ref: 26, hp: 155, atk: 24, def: 7, spd: 15 },
-      { name: "樹喰いの鬼", min: 30, max: 38, weight: 1, icon: "👹", ref: 28, hp: 180, atk: 28, def: 9, spd: 11 },
-      { name: "影狒々", min: 36, max: 44, weight: 1, icon: "🦍", ref: 30, hp: 200, atk: 30, def: 10, spd: 13 },
-      { name: "大百足", min: 42, max: 50, weight: 1, icon: "🐛", ref: 32, hp: 230, atk: 32, def: 12, spd: 10 },
-      { name: "竜", min: 40, max: 50, weight: 1, icon: "🐲", ref: 45, hp: 340, atk: 40, def: 14, spd: 16 },
+  function northWoodsLevelBand(layer) {
+    const bands = [
+      null,
+      { lo: 20, hi: 80 },
+      { lo: 80, hi: 250 },
+      { lo: 250, hi: 500 },
+      { lo: 500, hi: 900 },
+      { lo: 900, hi: 1200 },
     ];
+    return bands[layer] || bands[1];
+  }
+
+  function rollNorthWoodsFoe(layer) {
+    // 北の森だけの通常遭遇。各枠は同じ重み（竜は希少ポップではない）。
+    // 層ごとにレベル帯が上がり、5層は約900〜1200。名前有りの物語ボスではない。
+    // ステは各種の旧基準（ref）から、レベル差ごとに hp+10 / atk+1 / defは2Lvごと+1 / spdは3Lvごと+1。
+    const band = northWoodsLevelBand(layer || 1);
+    const span = Math.max(1, band.hi - band.lo);
+    const baseTypes = [
+      { name: "骨狼", icon: "🦴", ref: 24, hp: 140, atk: 26, def: 6, spd: 18, t0: 0.0, t1: 0.18 },
+      { name: "夜這い蜘蛛", icon: "🕷️", ref: 26, hp: 155, atk: 24, def: 7, spd: 15, t0: 0.15, t1: 0.35 },
+      { name: "樹喰いの鬼", icon: "👹", ref: 28, hp: 180, atk: 28, def: 9, spd: 11, t0: 0.32, t1: 0.52 },
+      { name: "影狒々", icon: "🦍", ref: 30, hp: 200, atk: 30, def: 10, spd: 13, t0: 0.48, t1: 0.68 },
+      { name: "大百足", icon: "🐛", ref: 32, hp: 230, atk: 32, def: 12, spd: 10, t0: 0.62, t1: 0.85 },
+      { name: "竜", icon: "🐲", ref: 45, hp: 340, atk: 40, def: 14, spd: 16, t0: 0.78, t1: 1.0 },
+    ];
+    const pool = baseTypes.map((t) => {
+      const min = Math.max(band.lo, Math.round(band.lo + span * t.t0));
+      const max = Math.max(min, Math.round(band.lo + span * t.t1));
+      return Object.assign({}, t, { min: min, max: max, weight: 1 });
+    });
+    // Ensure layer 5 can roll up to 1200
+    if ((layer || 1) >= 5) pool[pool.length - 1].max = 1200;
     let total = 0;
     for (let i = 0; i < pool.length; i++) total += pool[i].weight;
     let roll = Math.random() * total;
@@ -6926,10 +7080,11 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     }
     const level = t.min + ((Math.random() * (t.max - t.min + 1)) | 0);
     const d = level - t.ref;
-    const hp = Math.max(40, t.hp + d * 10);
-    const atk = Math.max(8, t.atk + d);
-    const def = Math.max(1, t.def + Math.floor(d / 2));
-    const spd = Math.max(6, t.spd + Math.floor(d / 3));
+    // Keep finite UI-safe integers (no NaN/Infinity even at Lv1200).
+    const hp = Math.max(40, Math.floor(t.hp + d * 10));
+    const atk = Math.max(8, Math.floor(t.atk + d));
+    const def = Math.max(1, Math.floor(t.def + Math.floor(d / 2)));
+    const spd = Math.max(6, Math.floor(t.spd + Math.floor(d / 3)));
     return makeEnemy(
       {
         id: "northstray",
@@ -6947,8 +7102,8 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
 
   function maybeExploreRandomEncounter(tile) {
     if (!explore || explore.encounterLock || explore.safe || exploreHairMode) return;
-    const north =
-      (explore.mapId === "overworld" || explore.mapId === "forest") && inNorthWoods(explore.y);
+    const nwLayer = northWoodsLayerOf(explore.mapId);
+    const north = nwLayer > 0;
     let chance = 0;
     if (tile === "g") chance = north ? 0.22 : explore.grassChance || 0.24;
     else if (tile === ".") chance = north ? 0.07 : explore.pathChance || 0.06;
@@ -6962,7 +7117,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     explore.encounterLock = true;
     saveExploreResume();
     // South field only: rare Lv45 龍 (~3.5% of encounters). Common: weaker 野良の妖怪.
-    // 北の森は別テーブル（竜は通常枠）。南の希少龍はこのまま。
+    // 北の森は層別テーブル（竜は通常枠）。南の希少龍はこのまま。
     const rareDragon = !north && Math.random() < 0.035;
     let foes;
     let encMsg;
@@ -6978,12 +7133,12 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     } else if (north) {
       const n = Math.random() < 0.28 ? 2 : 1;
       foes = [];
-      for (let i = 0; i < n; i++) foes.push(rollNorthWoodsFoe());
+      for (let i = 0; i < n; i++) foes.push(rollNorthWoodsFoe(nwLayer));
       const shown = foes.map((f) => f.name).join("、");
-      encMsg = "北の森の野良妖怪に遭遇した！ " + shown;
+      encMsg = "北の森" + nwLayer + "層の野良妖怪に遭遇した！ " + shown;
       winMsg = "北の森の野良妖怪を退けた。";
-      yourikiBonus = 16;
-      toastMsg = "北の森の野良妖怪！";
+      yourikiBonus = 12 + nwLayer * 4;
+      toastMsg = "北の森" + nwLayer + "層の野良妖怪！";
     } else {
       const n = Math.random() < 0.35 ? 2 : 1;
       foes = [];
@@ -7110,7 +7265,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       getNextObjective() +
       "</strong></p>" +
       "<p><strong>移動はマップを歩いて行う。</strong></p>" +
-      "<p>フィールド（森含む）を歩く。黒い髪の玉＝結羅の巣（入るとメニューのみ）。村Aは地図上に「村A」と表示。巣の北の通路の先は北の森。</p>" +
+      "<p>フィールド（森含む）を歩く。黒い髪の玉＝結羅の巣（入るとメニューのみ）。村Aは地図上に「村A」と表示。巣の北のゲートから北の森（全5層・最奥約Lv1200）へ。初心者は村Aから。</p>" +
       "<p>髪の結界は巣メニューから。黒髪をマップ上で伸ばして村を襲え。</p>";
     grid.appendChild(hint);
 
