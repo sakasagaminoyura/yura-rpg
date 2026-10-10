@@ -1443,7 +1443,25 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   /** EXP awarded for one defeated enemy; bosses give a small bonus. */
   function expForEnemy(enemy) {
     const hp = Number(enemy && enemy.maxHp) || 0;
-    return Math.max(10, Math.floor(hp / 3)) + (enemy && enemy.isBoss ? 20 : 0);
+    const base = Math.max(10, Math.floor(hp / 3)) + (enemy && enemy.isBoss ? 20 : 0);
+    return Math.floor(base * expLevelBonusRate(enemy));
+  }
+
+  // 格上ボーナス: 結羅より高レベルの敵は1レベル差ごとに+10%（最大3倍）。
+  const EXP_UPLEVEL_BONUS_PER_LEVEL = 0.1;
+  const EXP_UPLEVEL_BONUS_MAX = 3;
+  function enemyLevelOf(enemy) {
+    if (!enemy) return 0;
+    const lv = Number(enemy.level);
+    if (lv > 0) return Math.floor(lv);
+    const m = /Lv\s*(\d+)/.exec(String(enemy.name || ""));
+    return m ? Number(m[1]) : 0;
+  }
+  function expLevelBonusRate(enemy) {
+    const elv = enemyLevelOf(enemy);
+    const plv = (state && state.player && state.player.level) || 1;
+    if (!elv || elv <= plv) return 1;
+    return Math.min(EXP_UPLEVEL_BONUS_MAX, 1 + (elv - plv) * EXP_UPLEVEL_BONUS_PER_LEVEL);
   }
 
   /** One level of the same stat growth as EXP level-up (does not touch EXP). */
@@ -1484,6 +1502,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       dead: false,
       isBoss: !!tmpl.isBoss,
       skills: tmpl.skills || null,
+      level: Number(tmpl.level) > 0 ? Math.floor(Number(tmpl.level)) : null,
     };
   }
 
@@ -8022,9 +8041,10 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     const p = state.player;
     const gained = (enemies || []).reduce((sum, enemy) => sum + expForEnemy(enemy), 0);
     if (gained <= 0) return 0;
+    const hadUplevel = (enemies || []).some((enemy) => expLevelBonusRate(enemy) > 1);
 
     p.exp += gained;
-    addLog("EXP +" + gained + "！", "heal");
+    addLog("EXP +" + gained + "！" + (hadUplevel ? "（格上ボーナス）" : ""), "heal");
     // Outside combat (e.g. 奉仕毒の逆転勝利) addLog is a no-op — toast instead
     if (!combat) toast("EXP +" + gained + "！");
 
