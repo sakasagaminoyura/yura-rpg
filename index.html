@@ -641,6 +641,28 @@ html, body {
   border-radius: 4px;
   animation: raidPulse 1.2s ease-in-out infinite;
 }
+/* The banner lives inside the .hud flex row. Without these rules it became a
+   flex item next to the stats, squeezed them into a 1-char column and stretched
+   to the full HUD height (page-filling on desktop). Keep it a compact single bar
+   on its own line below the portrait/stats, on phone and desktop. */
+.hud { flex-wrap: wrap; }
+.hud > .raid-banner {
+  flex: 0 0 100%;
+  order: 99;
+  align-self: flex-start;
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  height: auto;
+  max-height: 2.2em;
+  margin-top: 4px;
+  padding: 4px 8px;
+  line-height: 1.3;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 @keyframes raidPulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.72; }
@@ -2038,7 +2060,9 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         ending: null, // shards | path
         battlesWon: 0,
         gameDay: 1, // in-game day (rest / battle pace)
-        lastNestRaidDay: 0, // last day a nest raid fired
+        lastNestRaidDay: 0, // last day a normal nest raid fired (min-gap anchor)
+        nestRaidRollDay: 0, // last day the once-per-day normal raid roll was made
+        fieldWinsSinceRaid: 0, // field wins since the last normal raid (anti rest-spam)
         // Special nest threat (dragon/naraku): omen then raid. Persist in save.
         specialNestOmen: null, // { kind: 'dragon'|'naraku', day: number } while omen active
         lastSpecialNestDay: 0, // day omen fired or raid resolved (cooldown anchor)
@@ -2755,6 +2779,11 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
 
   /** フィールド／村戦闘で服装HP0 → 羞恥逃亡で巣へ（巣防衛中は呼ばない） */
   function fleeClothesBroken() {
+    // The fight is over (shameful flee): a raid queued mid-fight surfaces now.
+    if (combat) {
+      combat.finished = true;
+      releaseQueuedNestRaid(combat);
+    }
     const hadRaid = !!state.nestRaid;
     state.inCombat = false;
     combat = null;
@@ -4614,6 +4643,11 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     if (state.flags.specialNestOmen) return;
     if (state.location === "nest" && !(combat && combat.nestDefense)) return;
     if (!state.flags.nestAwake) return;
+    // Never open a raid in the middle of a live field fight — queue it instead.
+    if (combat && !combat.finished && !combat.nestDefense) {
+      if (!combat.queuedNestRaid) combat.queuedNestRaid = reason || "戦闘中の急報";
+      return;
+    }
     raidNoticeClosed = false;
     state.nestRaid = { turnsLeft: NEST_RAID_TURNS, special: false };
     const msg =
@@ -4623,16 +4657,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       NEST_RAID_TURNS +
       "ターン以内に戻れ！（ふだんの奇襲）";
     toast(msg);
-    if (combat && !combat.finished && !combat.nestDefense) {
-      addLog("⚠ 巣の奇襲！ 魂櫛が危ない——急いで巣へ戻れ！", "sys");
-      addLog("「巣へ急行」で戦闘を中断できる", "sys");
-    }
     refreshAllHuds();
-    if (combat && !combat.finished) {
-      try {
-        renderCombat();
-      } catch (e) {}
-    }
   }
 
   function clearNestRaid(saved) {
@@ -4649,11 +4674,10 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     }
     if (!state.nestRaid) return false;
     if (combat && combat.nestDefense) return false; // 防衛戦中はタイマー停止
+    // 戦闘中は（離脱できないので）奇襲タイマーも止める
+    if (combat && !combat.finished) return false;
     state.nestRaid.turnsLeft -= n == null ? 1 : n;
     refreshAllHuds();
-    if (combat && !combat.finished) {
-      addLog("巣の奇襲……残り" + Math.max(0, state.nestRaid.turnsLeft) + "T", "sys");
-    }
     if (state.nestRaid.turnsLeft <= 0) {
       failNestRaid();
       return true;
@@ -4666,50 +4690,81 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     soulCombDeath();
   }
 
-  /** After a field battle win (away from nest): about once per in-game day. */
-  function maybeTriggerNestRaidAfterBattle() {
-    // Midgame special threat check (shards>=6); independent of Lv10 daily ambush
-    maybeProgressSpecialNestThreat("battle");
-    if (!canTriggerNestRaid()) return;
-    if (state.nestRaid) return;
-    if (state.flags.specialNestOmen) return; // 特別な気配のあいだはふだんの奇襲を抑止
-    if (state.location === "nest") return;
-    if (!state.flags.nestAwake || !state.flags.hairGathered) return;
-    const won = state.flags.battlesWon || 0;
-    if (won < 1) return;
-    const day = currentGameDay();
-    if ((state.flags.lastNestRaidDay || 0) >= day) return; // already raided this day
-    // ~once/day: fire on first eligible win of a new day (rest or ~5 battles)
-    state.flags.lastNestRaidDay = day;
-    startNestRaid(won + "戦目のあと／" + day + "日目");
-  }
+  // Normal (Lv10+) ambush cadence: about once per 3–4 in-game days.
+  // - at least NEST_RAID_MIN_GAP_DAYS game days since the last normal ambush
+  // - then ONE roll per game day (NEST_RAID_DAILY_CHANCE), not one per battle
+  // - plus a few field wins since the last ambush, so rest/save spam cannot force one
+  // Old bug: the lock only blocked the *same* day, and a day passes on every rest
+  // (and every 5 wins), so "fight → defend → rest → save" got an ambush after every fight.
+  const NEST_RAID_MIN_GAP_DAYS = 3;
+  const NEST_RAID_DAILY_CHANCE = 0.55; // mean ≈ 3 + 0.45/0.55 ≈ 3.8 days
+  const NEST_RAID_MIN_FIELD_WINS = BATTLES_PER_GAME_DAY;
+  const NEST_RAID_MIDCOMBAT_CHANCE = 0.04; // per round; result is queued until the fight ends
 
-  /** Mid-combat random raid trigger while away (still ≤ once per in-game day). */
-  function maybeTriggerNestRaidMidCombat() {
-    if (!canTriggerNestRaid()) return;
-    if (state.nestRaid) return;
-    if (state.flags.specialNestOmen) return;
-    if (!combat || combat.nestDefense || combat.remoteHair || combat.finished) return;
-    if (state.location === "nest") return;
-    if (!state.flags.nestAwake || !state.flags.hairGathered) return;
-    if ((state.flags.battlesWon || 0) < 1) return;
+  /** Common eligibility for the normal ambush (not the special shard≥6 threat). */
+  function normalNestRaidEligible() {
+    if (!canTriggerNestRaid()) return false;
+    if (state.nestRaid) return false;
+    if (state.flags.specialNestOmen) return false; // 特別な気配のあいだはふだんの奇襲を抑止
+    if (state.location === "nest") return false;
+    if (!state.flags.nestAwake || !state.flags.hairGathered) return false;
+    if ((state.flags.battlesWon || 0) < 1) return false;
     const day = currentGameDay();
-    if ((state.flags.lastNestRaidDay || 0) >= day) return;
-    // Low mid-combat chance; day lock keeps overall cadence ≈ once/day
-    if (Math.random() < 0.04) {
+    const last = state.flags.lastNestRaidDay || 0;
+    if (last > day) {
+      // clock went backwards (old save) — re-anchor instead of locking forever
       state.flags.lastNestRaidDay = day;
-      startNestRaid("戦闘中の急報／" + day + "日目");
+      return false;
     }
+    if (last && day - last < NEST_RAID_MIN_GAP_DAYS) return false;
+    if ((state.flags.fieldWinsSinceRaid || 0) < NEST_RAID_MIN_FIELD_WINS) return false;
+    if ((state.flags.nestRaidRollDay || 0) >= day) return false; // already rolled today
+    return true;
   }
 
-  function rushToNestFromCombat() {
-    if (combat && combat._timers) combat._timers.forEach((id) => clearTimeout(id));
-    combat = null;
-    pendingVictory = null;
-    state.inCombat = false;
-    state.location = "nest";
-    hideModal();
-    beginNestDefense();
+  function markNormalNestRaidFired() {
+    const day = currentGameDay();
+    state.flags.lastNestRaidDay = day;
+    state.flags.nestRaidRollDay = day;
+    state.flags.fieldWinsSinceRaid = 0;
+  }
+
+  /** After a field battle win (away from nest): one roll per eligible game day. */
+  function maybeTriggerNestRaidAfterBattle() {
+    // Midgame special threat check (shards>=6); independent of Lv10 ambush
+    maybeProgressSpecialNestThreat("battle");
+    if (state.location !== "nest") {
+      state.flags.fieldWinsSinceRaid = (state.flags.fieldWinsSinceRaid || 0) + 1;
+    }
+    if (!normalNestRaidEligible()) return;
+    const day = currentGameDay();
+    state.flags.nestRaidRollDay = day; // one roll per day, win or lose
+    if (Math.random() >= NEST_RAID_DAILY_CHANCE) return;
+    markNormalNestRaidFired();
+    startNestRaid((state.flags.battlesWon || 0) + "戦目のあと／" + day + "日目");
+  }
+
+  /**
+   * Mid-combat random raid while away. Never interrupts the fight: the raid is
+   * queued on the combat and only starts after the fight ends (win / clothes-0 flee).
+   */
+  function maybeTriggerNestRaidMidCombat() {
+    if (!combat || combat.nestDefense || combat.remoteHair || combat.finished) return;
+    if (combat.queuedNestRaid) return;
+    if (!normalNestRaidEligible()) return;
+    if (Math.random() >= NEST_RAID_MIDCOMBAT_CHANCE) return;
+    const day = currentGameDay();
+    markNormalNestRaidFired();
+    combat.queuedNestRaid = "戦闘中の急報／" + day + "日目";
+  }
+
+  /** Start a raid that was queued during a field fight (call once the fight is over). */
+  function releaseQueuedNestRaid(c) {
+    if (!c || !c.queuedNestRaid) return;
+    const reason = c.queuedNestRaid;
+    c.queuedNestRaid = null;
+    if (state.nestRaid) return;
+    startNestRaid(reason);
   }
 
   function beginNestDefense() {
@@ -5795,7 +5850,15 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   const VIEW_TH = 11; // tiles visible vertically
   let exploreFacing = 2; // 0=up 1=right 2=down 3=left
   let exploreWalk = null; // { ox, oy, nx, ny, start, dur }
-  let explorePendingMove = null; // one buffered step { dx, dy } while walk anim plays
+  let explorePendingMove = null; // one buffered step { dx, dy } (input pacing only)
+  let explorePendingTimer = 0;
+  let exploreLastStepAt = -1e9;
+  // Walk feel: the logical tile changes at once and the sprite is drawn there.
+  // Only a very short slide is shown; it is always clamped to the true tile.
+  // (Old bug: a 130ms eased tween ran per step and the next buffered step waited
+  // for it, so the drawn sprite trailed the real tile while walking.)
+  const EXPLORE_TWEEN_MS = 60;
+  const EXPLORE_STEP_MS = 110; // min interval between steps (keeps old walking pace)
   let exploreRaf = 0;
   let exploreTileCache = null;
   let explorePlayerCache = null; // [facing][frame]
@@ -6239,6 +6302,10 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     }
     exploreWalk = null;
     explorePendingMove = null;
+    if (explorePendingTimer) {
+      clearTimeout(explorePendingTimer);
+      explorePendingTimer = 0;
+    }
   }
 
   function ensureExploreLoop() {
@@ -6256,21 +6323,9 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       if (exploreWalk) {
         const w = exploreWalk;
         const t = (now - w.start) / w.dur;
-        if (t >= 1) {
-          exploreWalk = null;
-          onExploreWalkArrive();
-          // Apply one buffered step after arrival (skip if left explore / locked).
-          if (explore && explorePendingMove && !explore.encounterLock && !exploreHairMode) {
-            const p = explorePendingMove;
-            explorePendingMove = null;
-            exploreMove(p.dx, p.dy);
-          } else {
-            explorePendingMove = null;
-          }
-          need = !!(explore && exploreWalk);
-        } else {
-          need = true;
-        }
+        // Slide finished, or the real tile moved on → snap to the true tile.
+        if (t >= 1 || w.nx !== explore.x || w.ny !== explore.y) exploreWalk = null;
+        else need = true;
       }
       if (explore) drawExploreCanvas(now);
       if (need && explore) exploreRaf = requestAnimationFrame(tick);
@@ -6350,6 +6405,13 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     }
     let drawPx = focusX * PX;
     let drawPy = focusY * PX;
+    // A stale/finished slide never moves the sprite away from the real tile.
+    if (
+      exploreWalk &&
+      (exploreWalk.nx !== explore.x || exploreWalk.ny !== explore.y || now - exploreWalk.start >= exploreWalk.dur)
+    ) {
+      exploreWalk = null;
+    }
     if (exploreWalk && !exploreHairMode) {
       const w = exploreWalk;
       const t = Math.min(1, (now - w.start) / w.dur);
@@ -6814,13 +6876,16 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       return;
     }
     if (explore.encounterLock) return;
-    // During walk anim (~0.13s), buffer one pending step so rapid taps are not lost.
-    if (exploreWalk) {
-      if (dx === 0 && dy === -1) exploreFacing = 0;
-      else if (dx === 1 && dy === 0) exploreFacing = 1;
-      else if (dx === 0 && dy === 1) exploreFacing = 2;
-      else if (dx === -1 && dy === 0) exploreFacing = 3;
+    // Input pacing: within EXPLORE_STEP_MS of the last step, keep one pending step
+    // and apply it when the interval ends. The real tile does not change meanwhile,
+    // so the drawn sprite is always on the real tile.
+    const tNow = performance.now();
+    const wait = EXPLORE_STEP_MS - (tNow - exploreLastStepAt);
+    if (wait > 0) {
       explorePendingMove = { dx: dx, dy: dy };
+      if (!explorePendingTimer) {
+        explorePendingTimer = setTimeout(flushExplorePendingMove, Math.ceil(wait));
+      }
       return;
     }
     if (dx === 0 && dy === -1) exploreFacing = 0;
@@ -6843,15 +6908,27 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     explore.y = ny;
     explore.steps++;
     explorePendingMove = null;
+    exploreLastStepAt = tNow;
     exploreWalk = {
       ox: ox,
       oy: oy,
       nx: nx,
       ny: ny,
-      start: performance.now(),
-      dur: 130,
+      start: tNow,
+      dur: EXPLORE_TWEEN_MS,
     };
+    drawExploreCanvas(tNow);
     ensureExploreLoop();
+    // Tile events / encounters for the tile we are now standing on.
+    onExploreWalkArrive();
+  }
+
+  function flushExplorePendingMove() {
+    explorePendingTimer = 0;
+    const p = explorePendingMove;
+    explorePendingMove = null;
+    if (!p || !explore || explore.encounterLock || exploreHairMode) return;
+    exploreMove(p.dx, p.dy);
   }
 
   function leaveExploreToLocation(locId) {
@@ -7272,6 +7349,10 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     // Prefer returning to walkable field/nest when possible.
     state.inCombat = false;
     if (combat && combat._timers) combat._timers.forEach((id) => clearTimeout(id));
+    if (combat && !combat.nestDefense && combat.queuedNestRaid) {
+      combat.finished = true;
+      releaseQueuedNestRaid(combat);
+    }
     combat = null;
     pendingVictory = null;
     exploreHairMode = null;
@@ -8128,7 +8209,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       addLog("戦闘開始！", "sys");
     }
     if (state.nestRaid && !combat.nestDefense) {
-      addLog("⚠ 巣の奇襲中！ 残り" + state.nestRaid.turnsLeft + "T — 「巣へ急行」可", "sys");
+      addLog("⚠ 巣の奇襲中！ 残り" + state.nestRaid.turnsLeft + "T — 戦闘が終わるまで巣へは戻れない（この間タイマーは止まる）", "sys");
     }
     // 素早さ順で行動（高い方が先）
     startInitiativeRound(true);
@@ -8163,12 +8244,9 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     combat.initiative = buildInitiativeOrder();
     combat.initIdx = 0;
     if (!isFirst) {
-      // 1ラウンドに1回だけ巣奇襲タイマーを進める
+      // 低確率の戦闘中奇襲は「予約」のみ。戦闘中は離脱不可・奇襲タイマーも進めない
       if (!combat.nestDefense && !combat.remoteHair) {
         maybeTriggerNestRaidMidCombat();
-        if (state.nestRaid) {
-          if (tickNestRaid(1)) return;
-        }
       }
     }
     advanceInitiative();
@@ -8267,6 +8345,8 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     if (combat._timers) combat._timers.forEach((id) => clearTimeout(id));
     combat._timers = [];
     state.inCombat = false;
+    // A raid queued mid-fight starts only now that the fight is over.
+    releaseQueuedNestRaid(combat);
     // Apply shards, slain flags, and objective NOW (not on the next step).
     // Story lines stay queued until 「つづける」 so the victory beat remains.
     heldStoryLines = null;
@@ -8364,9 +8444,12 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     if (combat._timers) combat._timers.forEach((id) => clearTimeout(id));
     const cb = combat.onLose;
     const wasNestDefense = !!combat.nestDefense;
+    const endedCombat = combat;
     state.inCombat = false;
     combat = null;
     pendingVictory = null;
+    // Queued mid-fight raid surfaces after the fight (e.g. clothes-0 flee → nest defense).
+    if (!wasNestDefense && state.player.comb > 0) releaseQueuedNestRaid(endedCombat);
     try {
       if (typeof cb === "function") cb();
     } catch (err) {
@@ -8526,24 +8609,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       return;
     }
 
-    // 巣の奇襲中：戦闘を即座に切り上げて巣へ戻れる
-    if (state.nestRaid && !combat.nestDefense) {
-      const rush = document.createElement("button");
-      rush.className = "btn skill-btn btn-danger";
-      rush.style.borderColor = "var(--red-bright)";
-      rush.innerHTML = state.nestRaid.special
-        ? '<span class="sk-name">⚠ 特別防衛へ</span><span class="sk-cost">戦闘を中断し特別な襲撃から魂櫛を守れ（残り' +
-          state.nestRaid.turnsLeft +
-          "T）</span>"
-        : '<span class="sk-name">⚠ 巣へ急行</span><span class="sk-cost">戦闘を中断して巣の防衛へ（残り' +
-          state.nestRaid.turnsLeft +
-          "T）</span>";
-      rush.onclick = () => {
-        if (!combat || combat.finished) return;
-        rushToNestFromCombat();
-      };
-      panel.appendChild(rush);
-    }
+    // 戦闘中は「巣へ急行」で離脱できない（勝利か服装0の逃亡まで続く）
 
     SKILL_ORDER.forEach((sid) => {
       const sk = SKILLS[sid];
