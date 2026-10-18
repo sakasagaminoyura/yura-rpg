@@ -20,6 +20,8 @@
     font-family:"Hiragino Maru Gothic ProN","Yu Gothic","Meiryo","Noto Sans CJK JP",sans-serif;text-shadow:0 1px 2px #000}
   .pad.down{background:rgba(255,120,170,.55);border-color:#fff}
   #tA{background:rgba(200,40,80,.25)}
+  #topBtn{width:auto;padding:0 10px;font-size:13px;font-weight:bold;white-space:nowrap;text-decoration:none;
+    font-family:"Hiragino Maru Gothic ProN","Yu Gothic","Meiryo","Noto Sans CJK JP",sans-serif;touch-action:manipulation}
   #hint{position:absolute;left:0;right:0;z-index:6;display:none;text-align:center;color:#fff8c0;font-weight:bold;
     font-family:"Hiragino Maru Gothic ProN","Yu Gothic","Meiryo","Noto Sans CJK JP",sans-serif;font-size:17px;line-height:1.5;padding:0 12px}
 </style>
@@ -28,6 +30,7 @@
 <canvas id="game"></canvas>
 <div class="tb" id="pauseBtn" title="いちじていし (P)">⏸</div>
 <div class="tb" id="muteBtn" title="おと オン/オフ (M)">🔊</div>
+<a class="tb" id="topBtn" href="../" title="ゲームえらびの トップへ もどる">← トップへ</a>
 <div id="hint">📱 よこむきにすると あそびやすいよ</div>
 <div id="touch">
   <div class="pad" id="tL" data-k="left">◀</div>
@@ -72,6 +75,14 @@ function fit(){
   if (mode === 'sides'){ bx = W - tb - 8; by = 8; }
   else if (mode === 'below' && cy >= tb + 8){ bx = cx + cw - tb - 6; by = cy - tb - 6; }
   place($('muteBtn'), bx, by, tb, tb); place($('pauseBtn'), bx - tb - 8, by, tb, tb);
+  // ← トップへ：がめんの外に おけるときは 外（上 or 左上）、むりなら HUDの すぐ下（左）
+  const topB = $('topBtn');
+  topB.style.height = tb + 'px';
+  let tx = cx + 6, ty;
+  if (mode === 'sides'){ tx = 8; ty = 8; }
+  else if (cy >= tb + 12) ty = cy - tb - 6;
+  else ty = cy + Math.round(22 * sc) + 6;
+  topB.style.left = tx + 'px'; topB.style.top = ty + 'px';
   // ヒント（たてむき）
   const hint = $('hint');
   if (portrait){ hint.style.display = 'block'; hint.style.top = Math.max(4, cy + ch + 8) + 'px'; }
@@ -254,6 +265,11 @@ PAD_IDS.forEach(id => {
 if (isTouch) $('touch').classList.add('on');
 document.getElementById('muteBtn').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); ensureAudio(); setMute(!muted); });
 document.getElementById('pauseBtn').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); ensureAudio(); togglePause(); });
+// ← トップへ：あそんでいる とちゅうなら かくにん
+document.getElementById('topBtn').addEventListener('pointerdown', e => e.stopPropagation());
+document.getElementById('topBtn').addEventListener('click', e => {
+  if (['title', 'gameover', 'win'].indexOf(G.state) < 0 && !confirm('ぼうけんの とちゅうです。トップへ もどる？')) e.preventDefault();
+});
 setMute(muted);
 function readInput(){
   inp.left = !!(kb.left || touch.left); inp.right = !!(kb.right || touch.right);
