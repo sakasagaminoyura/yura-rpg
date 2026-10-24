@@ -1484,7 +1484,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   // 巣の外でもLv70以上の敵は魂櫛を直接狙う（敵の行動ごとの確率・1回の櫛ダメージ）
   const COMB_STRIKE_MIN_LEVEL = 70;
   const COMB_STRIKE_CHANCE = 0.25;
-  const COMB_STRIKE_DAMAGE = 1; // ふだんの巣防衛と同じ // 魂櫛 HP（旧300から縮小。休息では回復しない）
+  const COMB_STRIKE_DAMAGE = 1; // ふだんの巣防衛と同じ // 魂櫛 HP（旧300から縮小。休息では回復しない。四魂の欠片12個で休息時に全快）
   const NEST_DEFENSE_HUNTERS = 20;
   // Special nest threat (dragon / naraku) — separate from Lv10 daily ambush
   const SPECIAL_NEST_SHARD_GATE = 6;
@@ -2273,6 +2273,15 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     if ((state.flags.shikonShards || 0) !== n) state.flags.shikonShards = n;
     return n;
   }
+  /** 四魂の欠片が12個そろっていれば、休息で魂櫛を全快する。回復したら true。 */
+  const COMB_REST_HEAL_LINE = "四魂の玉の力で、魂櫛のひびがふさがった……";
+  function restHealCombIfShardsComplete() {
+    if (shardCount() < SHARD_GOAL) return false;
+    if (state.player.comb >= state.player.maxComb) return false;
+    state.player.comb = state.player.maxComb;
+    return true;
+  }
+
 
   /** Keep HUD, objective, and nest 「欠片狩り続行 N/12」 on the same capped count. */
   function refreshShardMenuIfOpen() {
@@ -2734,6 +2743,8 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   function soulCombDeath() {
     if (combDeathActive) return;
     combDeathActive = true;
+    // 死因：巣の外で Lv70+ の魂櫛直撃により0になった場合は、その敵名を残す
+    const fieldStrikeKiller = combat && combat.combStrikeKiller ? combat.combStrikeKiller : null;
     state.player.comb = 0;
     state.nestRaid = null; // 奇襲バナー・急行ボタンを確実に消す
     raidNoticeClosed = false;
@@ -2753,6 +2764,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     heldStoryLines = null;
     hideModal();
     state._awaySoulcombGameOver = true;
+    state._combDeathFieldKiller = fieldStrikeKiller;
     startStory([
       {
         speaker: "結羅",
@@ -3304,8 +3316,12 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     // 外出先・魂櫛破壊 Game Over（巣防衛敗北の既存フローはそのまま）
     if (state._awaySoulcombGameOver) {
       state._awaySoulcombGameOver = null;
+      const fieldKiller = state._combDeathFieldKiller;
+      state._combDeathFieldKiller = null;
       showGameOver(
-        "巣の奇襲……留守のあいだに魂櫛が砕かれた。\n魂の器は失われ、結羅の永生はここで終わる。"
+        fieldKiller
+          ? fieldKiller + "の一撃が魂櫛に届いた……\nあたしの本体……魂櫛が砕けた。\n魂の器は失われ、結羅の永生はここで終わる。"
+          : "巣の奇襲……留守のあいだに魂櫛が砕かれた。\n魂の器は失われ、結羅の永生はここで終わる。"
       );
       return;
     }
@@ -7128,13 +7144,23 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         state.player.clothes = state.player.maxClothes;
         state.player.youriki = state.player.maxYouriki;
         state.player.maxComb = MAX_COMB;
-        // 魂櫛は休息では回復しない（破損は巣防衛の結果として残る）
+        // 魂櫛は休息では回復しない（破損は巣防衛の結果として残る）。例外：四魂の欠片12個で全快
         if (state.player.comb > MAX_COMB) state.player.comb = MAX_COMB;
+        const combHealed = restHealCombIfShardsComplete();
         state.player.buffAtk = 0;
         state.player.buffTurns = 0;
         state.flags.gameDay = (state.flags.gameDay || 1) + 1;
-        toast("休息した。服装・妖力が回復。（魂櫛は変わらず／" + state.flags.gameDay + "日目）");
-        setExploreMsg("ベッドで休んだ。服装・妖力は全快。魂櫛は休息では治らない。（" + state.flags.gameDay + "日目）");
+        if (combHealed) {
+          const combTxt = "（魂櫛 " + state.player.comb + "/" + state.player.maxComb + "）";
+          toast(COMB_REST_HEAL_LINE + combTxt);
+          setExploreMsg("ベッドで休んだ。服装・妖力は全快。" + COMB_REST_HEAL_LINE + combTxt + "（" + state.flags.gameDay + "日目）");
+        } else if (shardCount() >= SHARD_GOAL) {
+          toast("休息した。服装・妖力が回復。（魂櫛は無傷／" + state.flags.gameDay + "日目）");
+          setExploreMsg("ベッドで休んだ。服装・妖力は全快。魂櫛は無傷のまま。（" + state.flags.gameDay + "日目）");
+        } else {
+          toast("休息した。服装・妖力が回復。（魂櫛は変わらず／" + state.flags.gameDay + "日目）");
+          setExploreMsg("ベッドで休んだ。服装・妖力は全快。魂櫛は休息では治らない（四魂の欠片を12個そろえれば治る）。（" + state.flags.gameDay + "日目）");
+        }
         refreshAllHuds();
         maybeProgressSpecialNestThreat("rest");
         return true;
@@ -7957,7 +7983,9 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       "/" +
       SHARD_GOAL +
       "。巣に歩行マップはない——休む・結界・セーブ・結末ができる。" +
-      "\n※休息では服装・妖力のみ回復。魂櫛は治らない。";
+      (shardCount() >= SHARD_GOAL
+        ? "\n※四魂の欠片が12個そろった。休息すると服装・妖力に加え、魂櫛も全快する。"
+        : "\n※休息では服装・妖力のみ回復。魂櫛は治らない（四魂の欠片を12個そろえると、休息で魂櫛も全快）。");
     if (state.flags.specialNestOmen && state.flags.specialNestOmen.kind) {
       const kn = specialNestKindLabel(state.flags.specialNestOmen.kind);
       nestBody +=
@@ -7985,16 +8013,19 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       add("黒髪を集める", () => playScene("gather"), "btn-gold");
     }
 
-    add("休息する（服装・妖力回復／魂櫛は不可）", () => {
+    add(shardCount() >= SHARD_GOAL ? "休息する（服装・妖力・魂櫛回復）" : "休息する（服装・妖力回復／魂櫛は欠片12個で回復）", () => {
       state.player.clothes = state.player.maxClothes;
       state.player.youriki = state.player.maxYouriki;
       state.player.maxComb = MAX_COMB;
-      // 魂櫛は休息では回復しない
+      // 魂櫛は休息では回復しない。例外：四魂の欠片12個で全快
       if (state.player.comb > MAX_COMB) state.player.comb = MAX_COMB;
+      const combHealed = restHealCombIfShardsComplete();
       state.player.buffAtk = 0;
       state.player.buffTurns = 0;
       state.flags.gameDay = (state.flags.gameDay || 1) + 1;
-      toast("休息した。服装・妖力が回復した。（魂櫛は変わらず／" + state.flags.gameDay + "日目）");
+      if (combHealed) toast("休息した。" + COMB_REST_HEAL_LINE + "（魂櫛 " + state.player.comb + "/" + state.player.maxComb + "／" + state.flags.gameDay + "日目）");
+      else if (shardCount() >= SHARD_GOAL) toast("休息した。服装・妖力が回復した。（魂櫛は無傷／" + state.flags.gameDay + "日目）");
+      else toast("休息した。服装・妖力が回復した。（魂櫛は変わらず／" + state.flags.gameDay + "日目）");
       refreshAllHuds();
       // Midgame special nest threat: day advance may bring omen or raid
       const omenBefore = !!(state.flags.specialNestOmen);
@@ -8996,6 +9027,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       const cDmg = COMB_STRIKE_DAMAGE;
       p.comb = clamp(p.comb - cDmg, 0, p.maxComb);
       combat.combStruck = true;
+      if (p.comb <= 0) combat.combStrikeKiller = String(e.name || "敵").replace(/\s*Lv\s*\d+\s*$/, "");
       addLog(
         e.name + "は魂櫛を直接狙った！ 魂櫛 −" + cDmg + "（残り" + p.comb + "/" + p.maxComb + "）！",
         "dmg"
