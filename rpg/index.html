@@ -2114,6 +2114,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         lastSpecialNestDay: 0, // day omen fired or raid resolved (cooldown anchor)
         specialNestWins: 0, // times special nest defense cleared
         overworldMapRev: 3, // 3 = 北の森を別マップ5層化（全体マップは南フィールドのみ）
+        northWoodsMapRev: 2, // 2 = 北の森各層40×26・層内の深さで遭遇Lv上昇
       },
       player: {
         name: "結羅",
@@ -2591,6 +2592,19 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       unbumpNorthStrip(state._exploreResume);
       unbumpNorthStrip(state._forestExploreResume);
       state.flags.overworldMapRev = 3;
+    }
+    // 北の森 rev2：各層を40×26へ拡大。旧座標で森の中にいたセーブは、その層の入口へ。
+    if (!state.flags.northWoodsMapRev || state.flags.northWoodsMapRev < 2) {
+      const toNorthWoodsEntrance = (pos) => {
+        if (!pos || !isNorthWoodsMap(pos.mapId)) return;
+        const m = getExploreMap(pos.mapId);
+        const st = (m && m.starts && (m.starts.south || m.starts.default)) || [20, 23];
+        pos.x = st[0];
+        pos.y = st[1];
+      };
+      toNorthWoodsEntrance(state._exploreResume);
+      if (state._forestExploreResume !== state._exploreResume) toNorthWoodsEntrance(state._forestExploreResume);
+      state.flags.northWoodsMapRev = 2;
     }
   }
 
@@ -5839,17 +5853,25 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     };
   }
 
-  /** Compact 北の森 layer map (1..5). South gate X / north gate Z. */
+  /**
+   * 北の森 layer map (1..5)：40×26（旧28×18の約2倍）。South gate X / north gate Z.
+   * 2本の樹林帯で層を3区画に分け、切れ目を左右交互に置く（入口→出口が蛇行）。
+   * 各床タイルに「深さ」0（入口X）〜1（出口Z）を持たせ、遭遇Lvを層内でも連続的に上げる。
+   */
+  const NORTH_WOODS_W = 40;
+  const NORTH_WOODS_H = 26;
   function buildNorthWoodsLayer(layer) {
-    const W = 28;
-    const H = 18;
+    const W = NORTH_WOODS_W;
+    const H = NORTH_WOODS_H;
     const tiles = [];
     for (let y = 0; y < H; y++) {
       const row = [];
       for (let x = 0; x < W; x++) {
         if (y === 0 || x === 0 || y === H - 1 || x === W - 1) row.push("#");
         else {
-          const n = (x * 19 + y * 23 + layer * 41) % 100;
+          let hsh = Math.imul(x + 1, 73856093) ^ Math.imul(y + 1, 19349663) ^ Math.imul(layer + 7, 83492791);
+          hsh = Math.imul(hsh ^ (hsh >>> 13), 1274126177);
+          const n = ((hsh ^ (hsh >>> 16)) >>> 0) % 100;
           if (n < 12) row.push("#");
           else if (n < 80) row.push("g");
           else row.push(".");
@@ -5858,18 +5880,58 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       tiles.push(row);
     }
     const mid = (W / 2) | 0;
-    // Spine + side paths so each layer feels walkable
-    carvePath(tiles, mid, H - 2, mid, 1, ".");
-    carvePath(tiles, 4, (H / 2) | 0, W - 5, (H / 2) | 0, ".");
-    carvePath(tiles, 5, 4, mid, 8, ".");
-    carvePath(tiles, mid, 8, W - 6, 5, ".");
-    carvePath(tiles, 6, H - 5, mid, H - 3, ".");
-    carvePath(tiles, mid, H - 4, W - 7, H - 6, ".");
+    // 樹林帯（2行の厚さ）
+    const beltLow = H - 9; // 17,18
+    const beltHigh = 8; // 8,9
+    for (let x = 1; x < W - 1; x++) {
+      tiles[beltLow][x] = "#";
+      tiles[beltLow + 1][x] = "#";
+      tiles[beltHigh][x] = "#";
+      tiles[beltHigh + 1][x] = "#";
+    }
+    const gapLow = layer % 2 === 1 ? 6 : W - 7;
+    const gapHigh = layer % 2 === 1 ? W - 7 : 6;
+    const midRow = 13;
+    // 本道：入口 → 下の切れ目 → 中区画 → 上の切れ目 → 出口
+    carvePath(tiles, mid, H - 3, gapLow, H - 5, ".");
+    carvePath(tiles, gapLow, H - 5, gapLow, midRow, ".");
+    carvePath(tiles, gapLow, midRow, gapHigh, midRow, ".");
+    carvePath(tiles, gapHigh, midRow, gapHigh, 4, ".");
+    carvePath(tiles, gapHigh, 4, mid, 2, ".");
+    // 脇道（行き止まりの探索路）
+    carvePath(tiles, mid, H - 4, W - 1 - gapLow, H - 4, ".");
+    carvePath(tiles, mid, midRow, mid, beltHigh + 3, ".");
+    carvePath(tiles, mid, 4, W - 1 - gapHigh, 5, ".");
     // Clear apron around gates
     fillRectTiles(tiles, mid - 2, 1, mid + 2, 3, ".");
     fillRectTiles(tiles, mid - 2, H - 4, mid + 2, H - 2, ".");
     tiles[H - 2][mid] = "X"; // south → previous / overworld
     tiles[1][mid] = "Z"; // north → deeper (layer 5: dead end message)
+    // 入口から行けない床は木にする（孤立ポケットを残さない）
+    const walk = (c) => c === "g" || c === "." || c === "X" || c === "Z";
+    const bfs = (sx, sy) => {
+      const d = tiles.map((r) => r.map(() => -1));
+      const q = [[sx, sy]];
+      d[sy][sx] = 0;
+      for (let qi = 0; qi < q.length; qi++) {
+        const [cx, cy] = q[qi];
+        const nb = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        for (let k = 0; k < 4; k++) {
+          const nx = cx + nb[k][0];
+          const ny = cy + nb[k][1];
+          if (nx < 0 || ny < 0 || nx >= W || ny >= H || d[ny][nx] >= 0 || !walk(tiles[ny][nx])) continue;
+          d[ny][nx] = d[cy][cx] + 1;
+          q.push([nx, ny]);
+        }
+      }
+      return d;
+    };
+    const dX = bfs(mid, H - 2);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (dX[y][x] < 0 && walk(tiles[y][x])) tiles[y][x] = "#";
+    const dZ = bfs(mid, 1);
+    const depth = tiles.map((r, y) =>
+      r.map((c, x) => (dX[y][x] >= 0 && dZ[y][x] >= 0 ? dX[y][x] / Math.max(1, dX[y][x] + dZ[y][x]) : 0))
+    );
     const rows = tiles.map((r) => r.join(""));
     return {
       id: "northwoods" + layer,
@@ -5879,6 +5941,8 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       grassChance: 0.2,
       pathChance: 0.07,
       rows: rows,
+      depth: depth,
+      gatePathLen: dX[1][mid],
       landmarks: [],
       starts: {
         default: [mid, H - 3],
@@ -5889,6 +5953,14 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       },
       blockMsg: "深い木々が阻む……",
     };
+  }
+
+  /** 北の森の現在地の深さ（0=入口〜1=出口）。不明なら null。 */
+  function northWoodsDepthAt(mapId, x, y) {
+    const layer = northWoodsLayerOf(mapId);
+    const m = layer ? EXPLORE_NORTHWOODS[layer] : null;
+    if (!m || !m.depth || !m.depth[y] || m.depth[y][x] == null) return null;
+    return m.depth[y][x];
   }
 
     function buildLargeForest() {
@@ -6055,11 +6127,11 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     nest: "巣はメニューのみ（歩行なし）",
     overworld: "大フィールド（森含む）　巣の北ゲート＝北の森1〜5層（最奥約Lv1200）　黒髪玉＝巣　F＝退治屋　南の草（稀に龍）",
     forest: "大フィールド（森含む）　巣の北ゲート＝北の森1〜5層（最奥約Lv1200）　黒髪玉＝巣　F＝退治屋　南の草（稀に龍）",
-    northwoods1: "北の森1層　南＝巣へ　北＝2層　野良Lv20〜80（竜も出る）",
-    northwoods2: "北の森2層　南＝1層　北＝3層　野良Lv80〜250",
-    northwoods3: "北の森3層　南＝2層　北＝4層　野良Lv250〜500",
-    northwoods4: "北の森4層　南＝3層　北＝5層　野良Lv500〜900",
-    northwoods5: "北の森5層（最奥）　南＝4層　野良Lv900〜1200",
+    northwoods1: "北の森1層　南＝巣へ　北＝2層　野良Lv20〜80（奥ほど強い・竜も出る）",
+    northwoods2: "北の森2層　南＝1層　北＝3層　野良Lv80〜250（奥ほど強い）",
+    northwoods3: "北の森3層　南＝2層　北＝4層　野良Lv250〜500（奥ほど強い）",
+    northwoods4: "北の森4層　南＝3層　北＝5層　野良Lv500〜900（奥ほど強い）",
+    northwoods5: "北の森5層（最奥）　南＝4層　野良Lv900〜1200（奥ほど強い）",
   };
 
   function pxFill(g, color, rects) {
@@ -6925,6 +6997,15 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         sx = explore.x;
         sy = explore.y;
       }
+      // 北の森：歩けない／範囲外の座標なら、その層の入口へ
+      if (isNorthWoodsMap(mapId)) {
+        const rowStr = mapDef.rows[sy | 0];
+        const c = rowStr ? rowStr[sx | 0] : undefined;
+        if (!(c === "g" || c === ".")) {
+          sx = start[0];
+          sy = start[1];
+        }
+      }
     }
 
     const prevSteps =
@@ -7360,7 +7441,8 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     return bands[layer] || bands[1];
   }
 
-  function rollNorthWoodsFoe(layer) {
+  const NORTH_WOODS_DEPTH_SPREAD = 0.12;
+  function rollNorthWoodsFoe(layer, depth) {
     // 北の森だけの通常遭遇。各枠は同じ重み（竜は希少ポップではない）。
     // 層ごとにレベル帯が上がり、5層は約900〜1200。名前有りの物語ボスではない。
     // ステは各種の旧基準（ref）から、レベル差ごとに hp+10 / atk+1 / defは2Lvごと+1 / spdは3Lvごと+1。
@@ -7374,13 +7456,29 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       { name: "大百足", icon: "🐛", ref: 32, hp: 230, atk: 32, def: 12, spd: 10, t0: 0.62, t1: 0.85 },
       { name: "竜", icon: "🐲", ref: 45, hp: 340, atk: 40, def: 14, spd: 16, t0: 0.78, t1: 1.0 },
     ];
-    const pool = baseTypes.map((t) => {
-      const min = Math.max(band.lo, Math.round(band.lo + span * t.t0));
-      const max = Math.max(min, Math.round(band.lo + span * t.t1));
-      return Object.assign({}, t, { min: min, max: max, weight: 1 });
-    });
-    // Ensure layer 5 can roll up to 1200
-    if ((layer || 1) >= 5) pool[pool.length - 1].max = 1200;
+    let pool;
+    if (typeof depth === "number" && isFinite(depth)) {
+      // 層内の深さ（入口0〜出口1）でLvを連続的に上げる：深さ±0.12の帯に入る種だけが出る
+      const dpt = Math.max(0, Math.min(1, depth));
+      const wLo = Math.max(0, dpt - NORTH_WOODS_DEPTH_SPREAD);
+      const wHi = Math.min(1, dpt + NORTH_WOODS_DEPTH_SPREAD);
+      pool = baseTypes
+        .filter((t) => t.t0 <= wHi && t.t1 >= wLo)
+        .map((t) => {
+          const min = Math.round(band.lo + span * Math.max(wLo, t.t0));
+          const max = Math.max(min, Math.round(band.lo + span * Math.min(wHi, t.t1)));
+          return Object.assign({}, t, { min: min, max: max, weight: 1 });
+        });
+    }
+    if (!pool || !pool.length) {
+      pool = baseTypes.map((t) => {
+        const min = Math.max(band.lo, Math.round(band.lo + span * t.t0));
+        const max = Math.max(min, Math.round(band.lo + span * t.t1));
+        return Object.assign({}, t, { min: min, max: max, weight: 1 });
+      });
+      // Ensure layer 5 can roll up to 1200
+      if ((layer || 1) >= 5) pool[pool.length - 1].max = 1200;
+    }
     let total = 0;
     for (let i = 0; i < pool.length; i++) total += pool[i].weight;
     let roll = Math.random() * total;
@@ -7447,7 +7545,8 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     } else if (north) {
       const n = Math.random() < 0.28 ? 2 : 1;
       foes = [];
-      for (let i = 0; i < n; i++) foes.push(rollNorthWoodsFoe(nwLayer));
+      const nwDepth = northWoodsDepthAt(explore.mapId, explore.x, explore.y);
+      for (let i = 0; i < n; i++) foes.push(rollNorthWoodsFoe(nwLayer, nwDepth));
       const shown = foes.map((f) => f.name).join("、");
       encMsg = "北の森" + nwLayer + "層の野良妖怪に遭遇した！ " + shown;
       winMsg = "北の森の野良妖怪を退けた。";
