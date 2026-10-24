@@ -620,14 +620,17 @@ a.top-link { text-decoration: none; display: inline-block; }
 ::-webkit-scrollbar-thumb { background: var(--border); }
 
 
-/* 魂櫛：フィールドでは巣に残置（実際の値をグレーで表示） */
+/* 魂櫛：フィールドでは巣に残置（実際の値を落ち着いた櫛色で表示） */
 .bar-comb.comb-away .bar-fill {
-  background: #333 !important;
-  opacity: 0.45;
+  background: linear-gradient(90deg, #6e5a3a, #c8a774) !important;
+  opacity: 1;
 }
 .bar-comb.comb-away .stat-val {
   color: var(--text-dim);
-  font-size: 0.85em;
+  font-size: 0.8em;
+  width: auto;
+  min-width: 4.5em;
+  white-space: nowrap;
 }
 .bar-comb.comb-away .stat-label::after {
   content: "（巣）";
@@ -1406,11 +1409,12 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     hair_thread: {
       id: "hair_thread",
       name: "髪糸攻撃",
-      desc: "鋭い髪糸で斬り裂く",
+      desc: "鋭い髪糸で敵全体を斬り裂く（全体攻撃）",
       youriki: 0,
       type: "atk",
       power: 18,
-      target: "single",
+      dmgScale: 0.5, // 全体攻撃化に伴い1体あたりの威力は半分
+      target: "all",
     },
     onibi: {
       id: "onibi",
@@ -8832,9 +8836,10 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         return;
       }
       targets.forEach((e) => {
-        const dmg = calcPlayerSkillDamage(sk, e, dmgBonus);
+        let dmg = calcPlayerSkillDamage(sk, e, dmgBonus);
+        if (sk.dmgScale) dmg = Math.max(1, Math.floor(dmg * sk.dmgScale));
         e.hp -= dmg;
-        addLog(sk.name + "！ " + e.name + "に" + dmg + "ダメージ！", "dmg");
+        addLog(sk.name + (sk.target === "all" ? "（全体）" : "") + "！ " + e.name + "に" + dmg + "ダメージ！", "dmg");
         if (e.hp <= 0) {
           e.dead = true;
           e.hp = 0;
