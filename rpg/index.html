@@ -1480,7 +1480,11 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   // level * 100, so the thresholds become 100, 200, 300, ... .
   const EXP_PER_LEVEL = 100;
   const MIN_NEST_RAID_LEVEL = 10; // ≥10; was 12 (prior), 6 (original)
-  const MAX_COMB = 10; // 魂櫛 HP（旧300から縮小。休息では回復しない）
+  const MAX_COMB = 10;
+  // 巣の外でもLv70以上の敵は魂櫛を直接狙う（敵の行動ごとの確率・1回の櫛ダメージ）
+  const COMB_STRIKE_MIN_LEVEL = 70;
+  const COMB_STRIKE_CHANCE = 0.25;
+  const COMB_STRIKE_DAMAGE = 1; // ふだんの巣防衛と同じ // 魂櫛 HP（旧300から縮小。休息では回復しない）
   const NEST_DEFENSE_HUNTERS = 20;
   // Special nest threat (dragon / naraku) — separate from Lv10 daily ambush
   const SPECIAL_NEST_SHARD_GATE = 6;
@@ -2358,7 +2362,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     if (!f.hairGathered) return "次：黒髪を集める";
     if (state.nestRaid && state.nestRaid.turnsLeft > 0) {
       if (state.nestRaid.special) {
-        const kn = state.nestRaid.kind === "naraku" ? "奈落" : "竜";
+        const kn = specialNestKindLabel(state.nestRaid.kind);
         return "次：急いで巣へ戻れ（" + kn + "が魂櫛を襲撃中）";
       }
       return "次：急いで巣へ戻れ（奇襲から魂櫛を守れ）";
@@ -2536,6 +2540,8 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     } else if (state.player.level < MIN_NEST_RAID_LEVEL) {
       state.nestRaid = null;
     }
+    // 奈落討伐済みのセーブに残った「奈落の気配／襲撃」は別の強い妖怪へ差し替え
+    fixSlainNarakuKinds();
     // 序盤から狩りへ出られるよう、村はずれ・森は最低でも解放
     if ((state.unlocked || 0) < 3) state.unlocked = 3;
     if (state.flags.nestAwake && !state.flags.hairGathered) state.flags.hairGathered = true;
@@ -2687,7 +2693,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         root.appendChild(banner);
       }
       if (state.nestRaid.special) {
-        const kn = state.nestRaid.kind === "naraku" ? "奈落" : "竜";
+        const kn = specialNestKindLabel(state.nestRaid.kind);
         banner.textContent =
           "⚠ 特別な気配！" + kn + "が巣を襲撃中！ 残り" + state.nestRaid.turnsLeft + "T — 急いで巣穴へ！";
       } else {
@@ -4386,6 +4392,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
 
   function afterNarakuWin() {
     state.flags.narakuSlain = true;
+    fixSlainNarakuKinds();
     state.flags.battlesWon++;
     state.unlocked = Math.max(state.unlocked, 5);
     state.player.youriki = clamp(state.player.youriki + 20, 0, state.player.maxYouriki);
@@ -4981,8 +4988,49 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   // Gate: shards >= 6. Omen first, then rare raid within a few days.
   // Separate from Lv10 daily nest ambush.
 
+  // 奈落討伐後の特別襲撃：既存の強い妖怪（竜・北の森の大百足・影狒々）
+  // 頭目のレベルは max(基準Lv, 結羅のLv)。ステは北の森と同じ伸び（Lv差ごと hp+10 / atk+1 / def 2Lvごと+1 / spd 3Lvごと+1）。
+  const POST_NARAKU_RAIDERS = {
+    dragon: { label: "竜", name: "巣を狙う竜", icon: "🐲", ref: 45, hp: 520, atk: 48, def: 22, spd: 18, minion: "眷属の妖怪" },
+    centipede: { label: "大百足", name: "巣を狙う大百足", icon: "🐛", ref: 40, hp: 310, atk: 40, def: 16, spd: 12, minion: "百足の子" },
+    hihi: { label: "影狒々", name: "巣を狙う影狒々", icon: "🦍", ref: 40, hp: 300, atk: 40, def: 15, spd: 16, minion: "狒々の手下" },
+  };
+  const POST_NARAKU_KINDS = ["dragon", "centipede", "hihi"];
+
   function specialNestKindLabel(kind) {
-    return kind === "naraku" ? "奈落" : "竜";
+    if (kind === "naraku") return state.flags && state.flags.narakuSlain ? "強い妖怪" : "奈落";
+    const r = POST_NARAKU_RAIDERS[kind];
+    return r ? r.label : "竜";
+  }
+
+  /** 奈落を倒したあとは奈落の奇襲は来ない。保存済みの奈落の気配／襲撃も差し替える。 */
+  function fixSlainNarakuKinds() {
+    if (!state || !state.flags || !state.flags.narakuSlain) return;
+    const pick = () => POST_NARAKU_KINDS[(Math.random() * POST_NARAKU_KINDS.length) | 0];
+    const omen = state.flags.specialNestOmen;
+    if (omen && omen.kind === "naraku") omen.kind = pick();
+    if (state.nestRaid && state.nestRaid.special && state.nestRaid.kind === "naraku") state.nestRaid.kind = pick();
+  }
+
+  function makePostNarakuRaider(kind) {
+    const r = POST_NARAKU_RAIDERS[kind] || POST_NARAKU_RAIDERS.dragon;
+    const plv = (state.player && state.player.level) || 1;
+    const level = Math.max(r.ref, Math.floor(plv));
+    const d = level - r.ref;
+    return makeEnemy(
+      {
+        id: "raid_" + kind,
+        name: r.name,
+        hp: Math.max(40, Math.floor(r.hp + d * 10)),
+        atk: Math.max(8, Math.floor(r.atk + d)),
+        def: Math.max(1, Math.floor(r.def + Math.floor(d / 2))),
+        spd: Math.max(6, Math.floor(r.spd + Math.floor(d / 3))),
+        icon: r.icon,
+        isBoss: true,
+        level: level,
+      },
+      r.name
+    );
   }
 
   function canSpecialNestThreat() {
@@ -4992,12 +5040,20 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   }
 
   function pickSpecialNestKind() {
+    if (state.flags.narakuSlain) {
+      return POST_NARAKU_KINDS[(Math.random() * POST_NARAKU_KINDS.length) | 0];
+    }
     if (state.flags.narakuMet && Math.random() < 0.55) return "naraku";
     if (Math.random() < 0.5) return "naraku";
     return "dragon";
   }
 
   function makeSpecialNestEnemies(kind) {
+    if (state.flags.narakuSlain) {
+      if (kind === "naraku") kind = "dragon";
+      const r = POST_NARAKU_RAIDERS[kind] || POST_NARAKU_RAIDERS.dragon;
+      return [makePostNarakuRaider(kind), makeEnemy(ENEMY_TMPL.stray, r.minion)];
+    }
     if (kind === "naraku") {
       return [
         makeEnemy(ENEMY_TMPL.naraku, "巣を狙う奈落"),
@@ -5014,6 +5070,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   /** Day-advance / post-battle: omen or escalate omen → raid. source: rest|battle */
   function maybeProgressSpecialNestThreat(source) {
     if (!canSpecialNestThreat()) return;
+    fixSlainNarakuKinds();
     if (state.nestRaid) return;
     const day = currentGameDay();
     const omen = state.flags.specialNestOmen;
@@ -5046,6 +5103,48 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     beginSpecialNestOmen(pickSpecialNestKind());
   }
 
+  // 奈落討伐後のみ使う（竜は討伐後も専用文。討伐前は従来の竜／奈落の文のまま）
+  const POST_NARAKU_OMEN_LINES = {
+    dragon: () =>
+      state.flags.narakuSlain
+        ? [
+            { speaker: "結羅", text: "……この気配。奈落はもういない——なのに、また巣が狙われてる。……竜ね。", img: ASSETS.dramatic },
+            { speaker: "結羅", text: "巣の周りに鱗の痕跡。あたしの魂櫛を嗅ぎつけたのは、奈落だけじゃなかったってこと。", img: ASSETS.dialogue },
+            { speaker: "結羅", text: "特別な気配よ。数日のうちに来る。巣を空けすぎたら、本気で壊されるわ。", img: ASSETS.dramatic },
+          ]
+        : null,
+    centipede: () => [
+      { speaker: "結羅", text: "……巣の土が、ざわざわ鳴ってる。奈落を倒したと思ったら——今度は大百足？", img: ASSETS.dramatic },
+      { speaker: "結羅", text: "あたしの黒髪の下を這い回った跡……魂櫛の匂いを追ってきたのね。", img: ASSETS.dialogue },
+      { speaker: "結羅", text: "特別な気配よ。数日のうちに来る。あたしの巣に脚一本でも入れたら、髪で縛り上げてあげる。", img: ASSETS.dramatic },
+    ],
+    hihi: () => [
+      { speaker: "結羅", text: "……木の上から、嫌な笑い声。奈落の次は影狒々ってわけ？", img: ASSETS.dramatic },
+      { speaker: "結羅", text: "巣のまわりの枝が折られてる。あたしの魂櫛を、遊び半分で奪う気ね。", img: ASSETS.dialogue },
+      { speaker: "結羅", text: "特別な気配よ。数日のうちに来る。巣を空けすぎないこと——あたしは逃げないわ。", img: ASSETS.dramatic },
+    ],
+  };
+  const POST_NARAKU_INTRO_LINES = {
+    dragon: (boss) =>
+      state.flags.narakuSlain
+        ? [
+            { speaker: "結羅", text: "来たわね……竜！　奈落がいなくなっても、あたしの魂櫛を狙う奴はいるってこと！", img: ASSETS.dramatic },
+            { speaker: (boss && boss.name) || "巣を狙う竜", text: "……（低い咆哮が巣穴を震わせる。狙いは明らかに魂櫛だ）", img: ASSETS.status },
+            { speaker: "結羅", text: "あたしの魂櫛に牙を向けたこと、後悔させてあげるわ！", img: ASSETS.combat },
+          ]
+        : null,
+    centipede: (boss) => [
+      { speaker: "結羅", text: "出たわね、大百足！　あたしの巣を這い回るなんて、いい度胸じゃない！", img: ASSETS.dramatic },
+      { speaker: (boss && boss.name) || "巣を狙う大百足", text: "……（無数の脚が巣穴の壁を掻く。狙いは奥の魂櫛だ）", img: ASSETS.status },
+      { speaker: "結羅", text: "その脚、一本残らず黒髪で切り落としてあげる。魂櫛には触らせないわ！", img: ASSETS.combat },
+    ],
+    hihi: (boss) => [
+      { speaker: "結羅", text: "影狒々……！　笑ってられるのも今のうちよ！", img: ASSETS.dramatic },
+      { speaker: (boss && boss.name) || "巣を狙う影狒々", text: "……（影の中で歯を剥いて笑う。長い腕が魂櫛へ伸びる）", img: ASSETS.status },
+      { speaker: "結羅", text: "ここはあたしの巣。魂櫛も、あたしのものよ！", img: ASSETS.combat },
+    ],
+  };
+
   function beginSpecialNestOmen(kind) {
     if (!canSpecialNestThreat()) return;
     if (state.flags.specialNestOmen || state.nestRaid) return;
@@ -5053,8 +5152,10 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     state.flags.specialNestOmen = { kind: kind, day: day };
     state.flags.lastSpecialNestDay = day;
     const kn = specialNestKindLabel(kind);
-    const lines =
-      kind === "naraku"
+    const customOmen = POST_NARAKU_OMEN_LINES[kind] ? POST_NARAKU_OMEN_LINES[kind]() : null;
+    const lines = customOmen
+      ? customOmen
+      : kind === "naraku"
         ? [
             {
               speaker: "結羅",
@@ -5097,6 +5198,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     if (!canSpecialNestThreat()) return;
     if (state.nestRaid) return;
     kind = kind || (state.flags.specialNestOmen && state.flags.specialNestOmen.kind) || "dragon";
+    if (kind === "naraku" && state.flags.narakuSlain) kind = pickSpecialNestKind();
     state.flags.specialNestOmen = null;
     const kn = specialNestKindLabel(kind);
     const atNest = state.location === "nest" && !(combat && combat.nestDefense);
@@ -5137,13 +5239,16 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       else beginNestDefense();
       return;
     }
+    fixSlainNarakuKinds();
     const kind = state.nestRaid.kind || "dragon";
     const kn = specialNestKindLabel(kind);
     state.location = "nest";
     refreshAllHuds();
     const foes = makeSpecialNestEnemies(kind);
-    const intro =
-      kind === "naraku"
+    const customIntro = POST_NARAKU_INTRO_LINES[kind] ? POST_NARAKU_INTRO_LINES[kind](foes[0]) : null;
+    const intro = customIntro
+      ? customIntro
+      : kind === "naraku"
         ? [
             {
               speaker: "結羅",
@@ -6881,7 +6986,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     if (state.nestRaid && state.nestRaid.turnsLeft > 0) {
       btn.style.display = "";
       if (state.nestRaid.special) {
-        const kn = state.nestRaid.kind === "naraku" ? "奈落" : "竜";
+        const kn = specialNestKindLabel(state.nestRaid.kind);
         btn.textContent = "特別防衛へ！（" + kn + "／残り" + state.nestRaid.turnsLeft + "T）";
       } else {
         btn.textContent = "巣へ急行！（残り" + state.nestRaid.turnsLeft + "T）";
@@ -7854,7 +7959,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       "。巣に歩行マップはない——休む・結界・セーブ・結末ができる。" +
       "\n※休息では服装・妖力のみ回復。魂櫛は治らない。";
     if (state.flags.specialNestOmen && state.flags.specialNestOmen.kind) {
-      const kn = state.flags.specialNestOmen.kind === "naraku" ? "奈落" : "竜";
+      const kn = specialNestKindLabel(state.flags.specialNestOmen.kind);
       nestBody +=
         "\n\n⚠ 特別な気配：" +
         kn +
@@ -8885,6 +8990,18 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       addLog(e.name + "は髪に縛られ動けない！", "sys");
       return;
     }
+    // Lv70以上の強敵は巣の外の戦闘（フィールド・北の森・遠隔・ボス）でも魂櫛を直接狙う。
+    // 巣の防衛戦は従来どおり下の魂櫛ルールを使う。Lv70未満は変更なし。
+    if (!defendingNest && enemyLevelOf(e) >= COMB_STRIKE_MIN_LEVEL && Math.random() < COMB_STRIKE_CHANCE) {
+      const cDmg = COMB_STRIKE_DAMAGE;
+      p.comb = clamp(p.comb - cDmg, 0, p.maxComb);
+      combat.combStruck = true;
+      addLog(
+        e.name + "は魂櫛を直接狙った！ 魂櫛 −" + cDmg + "（残り" + p.comb + "/" + p.maxComb + "）！",
+        "dmg"
+      );
+      return;
+    }
     // 見えぬ髪の遠隔襲撃：結羅本人は巣にいるため服装は傷つかない（妖力のみ微減）
     if (remoteHair) {
       const yDmg = Math.max(1, Math.min(3, e.atk));
@@ -8947,7 +9064,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     refreshAllHuds();
     renderCombat();
 
-    if (defendingNest && p.comb <= 0) {
+    if ((defendingNest || combat.combStruck) && p.comb <= 0) {
       addLog("魂櫛が……砕けた……！ 進退窮まった……！", "sys");
       const cp = $("#combat-portrait");
       if (cp) cp.src = ASSETS.nude;
