@@ -620,9 +620,8 @@ a.top-link { text-decoration: none; display: inline-block; }
 ::-webkit-scrollbar-thumb { background: var(--border); }
 
 
-/* 魂櫛：フィールドでは巣に残置（表示のみ） */
+/* 魂櫛：フィールドでは巣に残置（実際の値をグレーで表示） */
 .bar-comb.comb-away .bar-fill {
-  width: 0% !important;
   background: #333 !important;
   opacity: 0.45;
 }
@@ -2647,8 +2646,8 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     root.querySelectorAll(".hud-spd").forEach((el) => (el.textContent = "素早さ " + (p.spd != null ? p.spd : BASE_SPD)));
 
     setBar(".bar-youriki", p.youriki, p.maxYouriki);
-    // 魂櫛は巣穴に隠している。フィールドでは耐久を表示しない（0 / 巣穴）。
-    // 戦闘HUDだけは耐久数値を出す（「巣穴」ラベルは誤表示）。
+    // 魂櫛は巣穴に置いてある。巣・戦闘HUDでは通常表示、
+    // それ以外では実際の値を「（巣穴）」付きで表示する（0と誤解させない）。
     const combatHud =
       !!(root.parentElement && root.parentElement.id === "screen-combat");
     const combHere =
@@ -2662,7 +2661,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         setBar(".bar-comb", p.comb, p.maxComb);
       } else {
         combRow.classList.add("comb-away");
-        setBar(".bar-comb", 0, p.maxComb, "巣穴");
+        setBar(".bar-comb", p.comb, p.maxComb, p.comb + "/" + p.maxComb + "（巣穴）");
       }
     }
     // 四魂の欠片
@@ -2762,7 +2761,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   /** 魂櫛0のまま遊べる状態を残さない（読込・HUD更新時の保険）。 */
   function enforceCombDeath() {
     if (combDeathActive) return false;
-    if (!state || !state.player || !(state.player.comb <= 0)) return false;
+    if (!state || !state.player || Number(state.player.comb) > 0) return false;
     const title = document.getElementById("screen-title");
     if (title && title.classList.contains("active")) return false;
     if (combat) {
