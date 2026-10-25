@@ -1607,7 +1607,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     e.raidKind = kind;
     return e;
   }
-  // HP の伸びだけは 1Lv あたり +5（通常の +10 だと20人以上が相手では戦闘が長引き、
+  // HP の伸びだけは 1Lv あたり +5（通常の +10 だと大勢が相手では戦闘が長引き、
   // 魂櫛への攻撃回数が増えて理不尽になるため）。攻撃・防御・素早さは通常どおり。
   const NEST_RAID_HP_PER_LV = 5;
   const NEST_RAID_MIN_LV = 14; // 従来の固定Lv（退治屋Lv14）を下限にする
@@ -2978,6 +2978,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     state._forestExploreResume = null;
     state._resumeExploreAfterStory = null;
     state.location = "nest";
+    state.fieldMenuPos = null;
     // 奇襲中なら巣へ逃げ帰った直後に防衛へ（フィールドからの帰還）
     if (hadRaid) state._resumeNestDefense = true;
     // Keep clothes at 0 through embarrassed story (nude portrait); restore on story end.
@@ -3102,7 +3103,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
               },
               {
                 speaker: "妖怪退治屋",
-                text: "ほう……全裸で懇願か。屈辱ものだな。いいだろう——二十人分、たっぷり奉仕してもらう。",
+                text: "ほう……全裸で懇願か。屈辱ものだな。いいだろう——こっちは大勢だ、全員分たっぷり奉仕してもらう。",
                 img: ASSETS.service,
               },
               {
@@ -3152,7 +3153,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
               },
               {
                 speaker: "妖怪退治屋",
-                text: "二十人いるぞ。一人ずつ、穴も喉も使い切れ。髪鬼の『奉仕』——最後まで見せてもらおう。",
+                text: "まだ大勢いるぞ。一人ずつ、穴も喉も使い切れ。髪鬼の『奉仕』——最後まで見せてもらおう。",
                 img: ASSETS.service,
               },
               {
@@ -3217,7 +3218,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
               },
               {
                 speaker: "",
-                text: "一人、また一人と膝から崩れ落ちる。二十人の退治屋が、奉仕の余韻も乾かぬまま毒に沈んでいく。",
+                text: "一人、また一人と膝から崩れ落ちる。大勢の退治屋が、奉仕の余韻も乾かぬまま毒に沈んでいく。",
                 img: ASSETS.nude,
               },
               {
@@ -3232,7 +3233,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
               },
               {
                 speaker: "",
-                text: "毒が巡り、乱れた黒髪が最後の一撃のように男たちを縛り上げる。二十人は次々と倒れ果てた。",
+                text: "毒が巡り、乱れた黒髪が最後の一撃のように男たちを縛り上げる。大勢いた退治屋は、次々と倒れ果てた。",
                 img: ASSETS.nude,
               },
               {
@@ -4959,6 +4960,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   }
 
   function beginNestDefense() {
+    state.fieldMenuPos = null;
     if (!state.nestRaid) {
       enterMap();
       return;
@@ -7123,6 +7125,9 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       }
     }
 
+    // 歩き出したら「メニューを開いた地点」の記録は使い終わり
+    state.fieldMenuPos = null;
+
     const prevSteps =
       (opts.resume &&
         ((state._exploreResume && state._exploreResume.steps) ||
@@ -7774,6 +7779,50 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     }
   }
 
+  // ── 巣メニュー／セーブ（フィールドから開くハブ）→ フィールドを歩く で元の地点に戻す ──
+  function rememberFieldMenuPos() {
+    if (!explore || exploreHairMode) return;
+    const mid = explore.mapId === "forest" ? "overworld" : explore.mapId;
+    if (mid !== "overworld" && !isNorthWoodsMap(mid)) return;
+    state.fieldMenuPos = {
+      mapId: mid,
+      x: explore.x | 0,
+      y: explore.y | 0,
+      facing: exploreFacing | 0,
+      steps: explore.steps || 0,
+    };
+  }
+  /** 記録地点が今も歩けるか（マップが無い／壁・水・範囲外なら使わない） */
+  function validFieldMenuPos(pos) {
+    if (!pos || pos.x == null || pos.y == null || !pos.mapId) return false;
+    const def = getExploreMap(pos.mapId);
+    if (!def) return false;
+    const built = buildExploreTiles(def);
+    const x = pos.x | 0;
+    const y = pos.y | 0;
+    if (x < 0 || y < 0 || x >= built.w || y >= built.h) return false;
+    const t = built.tiles[y][x];
+    return t !== "#" && t !== "~";
+  }
+  /** ハブの「フィールドを歩く」：記録地点があればそこから、なければ従来どおり */
+  function walkFieldFromHub() {
+    const pos = state.fieldMenuPos;
+    const raidPending = !!(state.nestRaid && state.nestRaid.turnsLeft > 0);
+    if (state.location !== "nest" && !raidPending && validFieldMenuPos(pos)) {
+      state._exploreResume = { mapId: pos.mapId, x: pos.x | 0, y: pos.y | 0, steps: pos.steps || 0 };
+      enterExplore(pos.mapId, { resume: true, skipWalkIntro: true });
+      state._exploreResume = null;
+      if (explore && explore.x === (pos.x | 0) && explore.y === (pos.y | 0)) {
+        exploreFacing = pos.facing >= 0 && pos.facing <= 3 ? pos.facing : 2;
+        renderExplore();
+      }
+      return;
+    }
+    state.fieldMenuPos = null;
+    const from = state.location === "nest" ? "nest" : "default";
+    enterExplore("overworld", { from: from, skipWalkIntro: state.flags.forestIntroSeen });
+  }
+
   /** Open hub then immediately offer to walk — used after stories */
   function enterMapOrField() {
     enterMap();
@@ -7810,10 +7859,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       b.onclick = fn;
       actions.appendChild(b);
     };
-    mk("フィールドを歩く", () => {
-      const from = state.location === "nest" ? "nest" : "default";
-      enterExplore("overworld", { from: from, skipWalkIntro: state.flags.forestIntroSeen });
-    }, "btn-gold btn-block");
+    mk("フィールドを歩く", () => walkFieldFromHub(), "btn-gold btn-block");
     mk("巣穴へ戻る", () => visitLocation("nest"), "btn-block");
     grid.appendChild(actions);
 
@@ -8073,6 +8119,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   function openNestHub(opts) {
     opts = opts || {};
     state.location = "nest";
+    state.fieldMenuPos = null; // 巣に着いた → 次の歩行は巣の前から
     exploreHairMode = null;
     if (state.nestRaid) {
       stopExploreLoop();
@@ -9776,10 +9823,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     // Field walk from map
     const bwalk = $("#btn-walk-field");
     if (bwalk)
-      bwalk.onclick = () => {
-        const from = state.location === "nest" ? "nest" : "default";
-        enterExplore("overworld", { from: from, skipWalkIntro: state.flags.forestIntroSeen });
-      };
+      bwalk.onclick = () => walkFieldFromHub();
 
     const bworldClose = $("#btn-world-map-close");
     if (bworldClose) bworldClose.onclick = closeWorldMap;
@@ -9813,6 +9857,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
           exitHairBarrierMap();
           return;
         }
+        rememberFieldMenuPos();
         explore = null;
         enterMap();
       };
