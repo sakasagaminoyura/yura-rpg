@@ -1578,6 +1578,92 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     };
   }
 
+  // ── 巣の奇襲（ふだん）：退治屋・法師・巫女の混成部隊。結羅のLvに合わせて強くなる ──
+  // 下限は従来の固定Lv（退治屋Lv14 など）。能力はほかのLv可変の敵と同じ式（d=Lv−基準Lv）。
+  const NEST_RAID_ATTACK_LINES = {
+    hunter: ["の鎖鎌がうなる！", "が刃を振りかざす！", "の矢が着物を裂く！"],
+    monk: ["のお札が貼りつく！", "の羂索が締め上げる！", "が縛の真言を唱える！"],
+    miko: ["の破魔の矢が射抜く！", "が破魔の矢を放つ！", "の祓串が髪を焼く！"],
+  };
+  const NEST_RAID_KIND_LABEL = { hunter: "退治屋", monk: "法師", miko: "巫女" };
+  function makeNestRaidMember(kind, level, name, opt) {
+    const t = ENEMY_TMPL[kind];
+    const o = opt || {};
+    const lv = Math.max(NEST_RAID_MIN_LV + (o.minAdd || 0), Math.floor(level));
+    const d = lv - t.level;
+    const e = makeEnemy(
+      {
+        id: "raid_" + kind,
+        name: name,
+        hp: Math.floor((t.hp + d * NEST_RAID_HP_PER_LV) * (o.hpMul || 1)),
+        atk: t.atk + d + (o.atkAdd || 0),
+        def: t.def + Math.floor(d / 2) + (o.defAdd || 0),
+        spd: t.spd + Math.floor(d / 3),
+        icon: t.icon,
+        level: lv,
+      },
+      name
+    );
+    e.raidKind = kind;
+    return e;
+  }
+  // HP の伸びだけは 1Lv あたり +5（通常の +10 だと20人以上が相手では戦闘が長引き、
+  // 魂櫛への攻撃回数が増えて理不尽になるため）。攻撃・防御・素早さは通常どおり。
+  const NEST_RAID_HP_PER_LV = 5;
+  const NEST_RAID_MIN_LV = 14; // 従来の固定Lv（退治屋Lv14）を下限にする
+  const NEST_RAID_EXTRA_LV = 40; // このLvから1人増える
+  const NEST_RAID_HEAD_LV = 70; // このLvから名のある頭が率いる
+  let lastNestRaidParty = null;
+  function makeNestRaidParty() {
+    const plv = (state && state.player && state.player.level) || 1;
+    const out = [];
+    const leaderKind = Math.random() < 0.5 ? "hunter" : "monk";
+    if (plv >= NEST_RAID_HEAD_LV) {
+      out.push(
+        makeNestRaidMember(leaderKind, plv + 8, leaderKind === "hunter" ? "退治屋の頭" : "大法師", {
+          hpMul: 1.2,
+          atkAdd: 4,
+          defAdd: 3,
+          minAdd: 2,
+        })
+      );
+    } else {
+      out.push(
+        makeNestRaidMember(leaderKind, plv + 5, leaderKind === "hunter" ? "退治屋の組頭" : "法師の長", {
+          hpMul: plv < 20 ? 1 : 1.3, // 序盤は従来並みに
+          minAdd: 1,
+        })
+      );
+    }
+    const n = NEST_DEFENSE_HUNTERS + (plv >= NEST_RAID_EXTRA_LV ? 1 : 0);
+    const count = { hunter: 0, monk: 0, miko: 0 };
+    for (let i = 1; i < n; i++) {
+      const r = Math.random();
+      const kind = r < 0.5 ? "hunter" : r < 0.75 ? "monk" : "miko";
+      count[kind]++;
+      const base = kind === "hunter" ? "妖怪退治屋" : NEST_RAID_KIND_LABEL[kind];
+      out.push(makeNestRaidMember(kind, plv + rand(0, 3), base + count[kind]));
+    }
+    lastNestRaidParty = out;
+    return out;
+  }
+  function nestRaidPartySummary(party) {
+    const c = { hunter: 0, monk: 0, miko: 0 };
+    party.forEach((e) => {
+      if (e.raidKind) c[e.raidKind]++;
+    });
+    const lead = party[0];
+    const lvs = party.map((e) => e.level || 0);
+    return (
+      String(lead.name).replace(/ Lv\d+$/, "") +
+      "（Lv" +
+      lead.level +
+      "）率いる " +
+      "退治屋×" + c.hunter + "・法師×" + c.monk + "・巫女×" + c.miko +
+      "（Lv" + Math.min.apply(null, lvs) + "〜" + Math.max.apply(null, lvs) + "）"
+    );
+  }
+
   function makeHunters(n) {
     const out = [];
     for (let i = 1; i <= n; i++) {
@@ -1599,6 +1685,17 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     villager: { id: "villager", name: "村人戦士", hp: 45, atk: 10, def: 2, spd: 8, level: 10, icon: "🗡️" },
     hunter: { id: "hunter", name: "妖怪退治屋", hp: 60, atk: 14, def: 3, spd: 9, level: 14, icon: "🏹" },
     monk: { id: "monk", name: "法師", hp: 50, atk: 12, def: 4, spd: 7, level: 12, icon: "📿" },
+    // 巫女：専用の絵は無いので絵文字アイコン（⛩️）で表示する
+    miko: {
+      id: "miko",
+      name: "巫女",
+      hp: 45,
+      atk: 13,
+      def: 3,
+      spd: 10,
+      level: 13,
+      icon: "⛩️",
+    },
     wolf: { id: "wolf", name: "野犬の化生", hp: 55, atk: 16, def: 2, spd: 14, level: 16, icon: "🐺" },
     inuyasha: {
       id: "inuyasha",
@@ -2721,7 +2818,9 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
           "⚠ 特別な気配！" + kn + "が巣を襲撃中！ 残り" + state.nestRaid.turnsLeft + "T — 急いで巣穴へ！";
       } else {
         banner.textContent =
-          "⚠ 巣の奇襲！ 残り" + state.nestRaid.turnsLeft + "T — 急いで巣穴へ！";
+          "⚠ 巣の奇襲！ 退治屋の一団が魂櫛を探している——残り" +
+          state.nestRaid.turnsLeft +
+          "T、急いで巣穴へ！";
       }
       banner.style.display = "block";
     } else if (banner) {
@@ -4745,9 +4844,9 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     const msg =
       "⚠ 巣の奇襲！" +
       (reason ? "（" + reason + "）" : "") +
-      " 敵が巣穴の魂櫛を狙っている！ 残り" +
+      " 退治屋・法師・巫女の一団が巣穴へ！ 魂櫛を探し出して砕く気だ——残り" +
       NEST_RAID_TURNS +
-      "ターン以内に戻れ！（ふだんの奇襲）";
+      "ターン以内に戻れ！";
     toast(msg);
     refreshAllHuds();
   }
@@ -4876,31 +4975,47 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     }
     state.location = "nest";
     refreshAllHuds();
+    const raidParty = makeNestRaidParty();
+    const raidLead = String(raidParty[0].name).replace(/ Lv\d+$/, "");
+    const plvNow = (state.player && state.player.level) || 1;
     startStory([
       {
         speaker: "結羅",
-        text: "巣穴に……敵の気配！？ 魂櫛が狙われている！（ふだんの奇襲ね……）",
+        text: "巣穴に……踏み荒らす足音。お札の焦げる匂い……魂櫛が狙われている！",
         img: ASSETS.dramatic,
       },
       {
-        speaker: "妖怪退治屋",
-        text: "髪鬼は留守だ！ 二十人、いっせいに巣を踏み荒らせ！",
+        speaker: raidLead,
+        text:
+          plvNow >= NEST_RAID_HEAD_LV
+            ? "逆髪の結羅、その黒髪ごと狩り尽くしてくれる。魂櫛を探し出せ——見つけ次第、叩き割れ！"
+            : "髪鬼は留守だ！ 巣を隅々まで探せ、魂櫛を見つけて叩き割れ！",
+        img: ASSETS.status,
+      },
+      {
+        speaker: "法師",
+        text: "封じの札は用意してある。あの黒髪、二度と伸ばせぬよう縛ってくれよう。",
+        img: ASSETS.status,
+      },
+      {
+        speaker: "巫女",
+        text: "破魔の矢、つがえました。櫛が見えたら、迷わず射抜きます。",
         img: ASSETS.status,
       },
       {
         speaker: "結羅",
-        text: "二十人も……！ 触らせない、ここはあたしの巣よ！",
+        text: "退治屋に法師、巫女まで……！ あたしの櫛に指一本でも触れてごらん、この髪で一人残らず絡め取ってあげる！",
         img: ASSETS.combat,
       },
       {
         speaker: "",
-        text: "【巣の防衛戦】妖怪退治屋×20——魂櫛を守れ！",
+        text: "【巣の防衛戦】" + nestRaidPartySummary(raidParty) + "——魂櫛を守れ！",
         img: ASSETS.combat,
         choices: [
           {
             label: "防衛する",
             startCombat: {
-              enemies: makeHunters(NEST_DEFENSE_HUNTERS),
+              enemies: raidParty,
               onWin: afterNestDefenseWin,
               onLose: showNestDefeatChoice,
               nestDefense: true,
@@ -4920,7 +5035,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     // Combat wins already got EXP in armCombatVictory.
     // 奉仕毒の逆転勝利は戦闘勝利フローを通らないため、ここで同等のEXPを付与する。
     if (!state._nestDefenseExpGranted) {
-      grantBattleExp(makeHunters(NEST_DEFENSE_HUNTERS));
+      grantBattleExp(lastNestRaidParty || makeNestRaidParty());
     }
     state._nestDefenseExpGranted = null;
 
@@ -4964,9 +5079,9 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     } else {
       $("#modal-title").textContent = "⚠ 巣の奇襲！";
       $("#modal-body").textContent =
-        "敵が巣穴を襲っている！\n残り緊急ターン：" +
+        "妖怪退治屋に法師、巫女まで——あたしの巣穴を荒らしている！\n残り緊急ターン：" +
         state.nestRaid.turnsLeft +
-        "\n\n魂櫛は巣にしかない。間に合わなければ魂は砕ける。";
+        "\n\n奴らは魂櫛を見つけて砕くつもりよ。魂櫛は巣にしかない。間に合わなければ、あたしの魂ごと砕ける。";
     }
     $("#modal-btns").innerHTML = "";
     const rush = document.createElement("button");
@@ -9172,7 +9287,9 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       const dmg = calcIncomingClothesDamage(e);
       const wasClothed = p.clothes > 0;
       p.clothes = clamp(p.clothes - dmg, 0, p.maxClothes);
-      addLog(e.name + "の攻撃！ 服装HP−" + dmg + "！", "dmg");
+      const raidLines = e.raidKind && NEST_RAID_ATTACK_LINES[e.raidKind];
+      const atkText = raidLines ? raidLines[rand(0, raidLines.length - 1)] : "の攻撃！";
+      addLog(e.name + atkText + " 服装HP−" + dmg + "！", "dmg");
       if (wasClothed && p.clothes <= 0) {
         const cp = $("#combat-portrait");
         if (cp) cp.src = ASSETS.nude;
