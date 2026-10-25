@@ -742,30 +742,67 @@ a.top-link { text-decoration: none; display: inline-block; }
   flex-shrink: 0;
 }
 
-/* 5〜8体：詰めたカード（スマホ幅で全員が見える） */
+/* 4体以上：読みやすいカード＋敵欄の縦スクロール */
 .unit-card.enemy.mid {
   padding: 2px 6px;
   text-align: left;
+  flex-shrink: 0;
 }
 .unit-card.enemy.mid .unit-name {
   font-size: 0.74rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
   margin: 0;
   line-height: 1.3;
 }
 .unit-card.enemy.mid .mid-ico { font-size: 0.9rem; margin-right: 3px; vertical-align: -1px; line-height: 1; }
-.unit-card.enemy.mid .unit-hp-bar { margin: 1px 0; }
+.unit-card.enemy.mid .unit-hp-bar { margin: 1px 0; height: 6px; }
 .unit-card.enemy.mid .unit-hp-text {
   font-size: 0.62rem;
   line-height: 1.25;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
-.unit-card.enemy.mid .unit-hp-bar { height: 6px; }
-#enemy-units.mid-dense { gap: 4px; padding: 6px; }
+#enemy-units.mid-dense {
+  gap: 4px;
+  padding: 6px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+  scrollbar-color: #c9a227 rgba(0,0,0,0.35);
+  max-height: 60vh;
+  max-height: 60dvh;
+}
+#enemy-units.mid-dense::-webkit-scrollbar { width: 6px; }
+#enemy-units.mid-dense::-webkit-scrollbar-track { background: rgba(0,0,0,0.35); }
+#enemy-units.mid-dense::-webkit-scrollbar-thumb { background: #c9a227; border-radius: 3px; }
+#enemy-units .enemy-count-head {
+  position: sticky;
+  top: -6px;
+  z-index: 2;
+  flex-shrink: 0;
+  background: var(--panel2);
+  padding: 2px 0;
+  margin-bottom: 0;
+}
+#enemy-units .enemy-scroll-hint {
+  display: none;
+  position: sticky;
+  bottom: -6px;
+  z-index: 2;
+  flex-shrink: 0;
+  width: calc(100% + 12px);
+  margin: -26px -6px -6px;
+  padding: 18px 0 4px;
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--gold);
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(20,8,14,0), rgba(20,8,14,0.92) 55%);
+}
+#enemy-units.has-more .enemy-scroll-hint { display: block; }
 
 
 /* ===== Explore pixel walk (フィールド／巣／森) ===== */
@@ -9334,6 +9371,14 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     el.scrollTop = el.scrollHeight;
   }
 
+  // 敵欄がスクロールできて、まだ下に敵が残っている間だけヒントを出す
+  function updateEnemyScrollHint(es) {
+    if (!es) return;
+    const more = es.scrollHeight - es.clientHeight - es.scrollTop > 4;
+    es.classList.toggle("has-more", more);
+    es.classList.toggle("scrollable", es.scrollHeight - es.clientHeight > 4);
+  }
+
   function renderCombat() {
     const p = state.player;
     // player side
@@ -9372,11 +9417,21 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
 
     // enemies
     const es = $("#enemy-units");
+    // 再描画でスクロール位置が先頭に戻らないよう保持する
+    const prevEnemyScroll = es.scrollTop;
     es.innerHTML = "";
-    const compact = combat.enemies.length > 8;
-    // 4〜8体（北の森の群れ・特別な奇襲）：スマホ幅でも全員が見えるよう、少し詰めたカード
-    const midDense = !compact && combat.enemies.length >= 4;
+    // 4体以上はすべて読みやすいカード（名前＋Lv／HPバー／能力）で表示し、
+    // 入りきらない分は敵欄を縦スクロールで確認する。
+    const compact = false;
+    const midDense = combat.enemies.length >= 4;
     es.classList.toggle("mid-dense", midDense);
+    if (midDense && combat.enemies.length >= 9) {
+      const alive = combat.enemies.filter((e) => !e.dead).length;
+      const head = document.createElement("div");
+      head.className = "fodder-summary enemy-count-head";
+      head.textContent = "敵 " + alive + " / " + combat.enemies.length + " 生存";
+      es.appendChild(head);
+    }
     if (compact) {
       const alive = combat.enemies.filter((e) => !e.dead).length;
       const head = document.createElement("div");
@@ -9473,6 +9528,21 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       }
       es.appendChild(card);
     });
+    if (midDense) {
+      const hint = document.createElement("div");
+      hint.className = "enemy-scroll-hint";
+      hint.textContent = "↕ スクロールで全員確認";
+      es.appendChild(hint);
+    }
+    es.scrollTop = prevEnemyScroll;
+    updateEnemyScrollHint(es);
+    // 画面切替直後は寸法が未確定のことがあるので、描画後にもう一度判定
+    requestAnimationFrame(() => updateEnemyScrollHint(es));
+    if (!es.dataset.scrollHintBound) {
+      es.dataset.scrollHintBound = "1";
+      es.addEventListener("scroll", () => updateEnemyScrollHint(es), { passive: true });
+      window.addEventListener("resize", () => updateEnemyScrollHint(es));
+    }
 
     // skills
     const panel = $("#skill-panel");
