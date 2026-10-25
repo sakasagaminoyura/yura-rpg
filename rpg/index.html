@@ -7914,9 +7914,9 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   }
 
   // ── 北の森の群れ（見える敵）──
-  // 「群れ」らしく最低5体。主の群れは主＋手下で合計5〜6体。
+  // 「群れ」らしく最低5体。主の群れは主＋手下で合計8体（L1〜2）／9〜10体（L3〜5）。
   function nwPackSize(layer, boss) {
-    if (boss) return layer <= 2 ? 5 : 6;
+    if (boss) return layer <= 2 ? 8 : rand(9, 10);
     if (layer <= 2) return 5;
     return rand(5, 6);
   }
