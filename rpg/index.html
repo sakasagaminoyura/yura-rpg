@@ -1557,16 +1557,44 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   const SPECIAL_NEST_OMEN_CHANCE = 0.2; // chance on eligible day-advance / post-battle check
   const SPECIAL_NEST_RAID_CHANCE = 0.4; // chance each day after omen (last day = guaranteed)
   const SPECIAL_NEST_RAID_TURNS = 5;
-  const LEVEL_CLOTHES_GROWTH = 10;
+  // 2026-10 B2：防御を捨て素早さと服装に振る（不死身の肉体で受ける）。レベルから直接算出。
+  const LEVEL_CLOTHES_GROWTH = 28;
   const LEVEL_YOURIKI_GROWTH = 8;
   const LEVEL_CLOTHES_REFILL = 20;
   const LEVEL_YOURIKI_REFILL = 16;
   const LEVEL_ATK_GROWTH = 2;
-  const LEVEL_DEF_GROWTH = 1;
+  const LEVEL_DEF_GROWTH = 0.5;
   const BASE_ATK = 12;
-  const BASE_DEF = 4;
-  const BASE_SPD = 10;
-  const LEVEL_SPD_GROWTH = 1; // 素早さはレベルで緩やかに上昇
+  const BASE_DEF = 2;
+  const BASE_SPD = 14;
+  const LEVEL_SPD_GROWTH = 2; // 素早さはレベルで大きく上昇（回避に効く）
+  const BASE_CLOTHES = 140;
+  const PLAYER_STAT_REV = 2; // 2 = B2（防御↓・素早さ／服装↑）へ移行済み
+  // 旧成長式（移行時に物語の服装ボーナスを割り出すため）
+  const OLD_BASE_CLOTHES = 100;
+  const OLD_LEVEL_CLOTHES_GROWTH = 10;
+  function yuraDefAt(level) {
+    return Math.floor(BASE_DEF + LEVEL_DEF_GROWTH * (Math.max(1, level) - 1));
+  }
+  function yuraSpdAt(level) {
+    return Math.floor(BASE_SPD + LEVEL_SPD_GROWTH * (Math.max(1, level) - 1));
+  }
+  function yuraClothesBaseAt(level) {
+    return Math.floor(BASE_CLOTHES + LEVEL_CLOTHES_GROWTH * (Math.max(1, level) - 1));
+  }
+  /** 旧ステータスのセーブを B2 式へ一度だけ移行（物語の服装ボーナスは保持、現在の服装は比率で換算）。 */
+  function migratePlayerStatsB2(out) {
+    const L = Math.max(1, Math.floor(out.level || 1));
+    const oldMax = Number(out.maxClothes);
+    const oldBase = OLD_BASE_CLOTHES + OLD_LEVEL_CLOTHES_GROWTH * (L - 1);
+    const bonus = Number.isFinite(oldMax) ? Math.max(0, Math.floor(oldMax - oldBase)) : 0;
+    const ratio = Number.isFinite(oldMax) && oldMax > 0 ? clamp(Number(out.clothes) / oldMax, 0, 1) : 1;
+    out.maxClothes = yuraClothesBaseAt(L) + bonus;
+    out.clothes = Math.round(out.maxClothes * (Number.isFinite(ratio) ? ratio : 1));
+    out.def = yuraDefAt(L);
+    out.spd = yuraSpdAt(L);
+    out.statRev = PLAYER_STAT_REV;
+  }
 
   function expToNextLevel(level) {
     return Math.max(EXP_PER_LEVEL, level * EXP_PER_LEVEL);
@@ -1599,11 +1627,12 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
   /** One level of the same stat growth as EXP level-up (does not touch EXP). */
   function applyOneLevel(p) {
     p.level += 1;
-    p.maxClothes += LEVEL_CLOTHES_GROWTH;
+    // 服装の最大値はレベル式の差分だけ増やす（物語の服装ボーナスはそのまま上乗せ）
+    p.maxClothes += yuraClothesBaseAt(p.level) - yuraClothesBaseAt(p.level - 1);
     p.maxYouriki += LEVEL_YOURIKI_GROWTH;
     p.atk = (p.atk || BASE_ATK) + LEVEL_ATK_GROWTH;
-    p.def = (p.def || BASE_DEF) + LEVEL_DEF_GROWTH;
-    p.spd = (p.spd || BASE_SPD) + LEVEL_SPD_GROWTH;
+    p.def = yuraDefAt(p.level);
+    p.spd = yuraSpdAt(p.level);
     p.clothes = clamp(p.clothes + LEVEL_CLOTHES_REFILL, 0, p.maxClothes);
     p.youriki = clamp(p.youriki + LEVEL_YOURIKI_REFILL, 0, p.maxYouriki);
   }
@@ -2299,8 +2328,8 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         level: 1,
         exp: 0,
         // 結羅は魂櫛が砕けない限り不滅。通常HPはなく服装HPのみ。
-        maxClothes: 100,
-        clothes: 100, // 服装HP
+        maxClothes: BASE_CLOTHES,
+        clothes: BASE_CLOTHES, // 服装HP
         maxYouriki: 100,
         youriki: 60, // 統一リソース「妖力」（髪技・紅霞技とも消費）
         maxComb: MAX_COMB,
@@ -2308,6 +2337,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         atk: BASE_ATK,
         def: BASE_DEF,
         spd: BASE_SPD,
+        statRev: PLAYER_STAT_REV,
         buffAtk: 0,
         buffTurns: 0,
       },
@@ -2683,15 +2713,17 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       out.atk = Math.max(1, Math.floor(Number(p.atk)));
     }
     if (p == null || p.def == null || !Number.isFinite(Number(p.def))) {
-      out.def = BASE_DEF + Math.max(0, out.level - 1) * LEVEL_DEF_GROWTH;
+      out.def = yuraDefAt(out.level);
     } else {
       out.def = Math.max(0, Math.floor(Number(p.def)));
     }
     if (p == null || p.spd == null || !Number.isFinite(Number(p.spd))) {
-      out.spd = BASE_SPD + Math.max(0, out.level - 1) * LEVEL_SPD_GROWTH;
+      out.spd = yuraSpdAt(out.level);
     } else {
       out.spd = Math.max(1, Math.floor(Number(p.spd)));
     }
+    // B2 ステータスへの一度きりの移行（元セーブの statRev で判定。defaults の値は見ない）
+    if (!p || Number(p.statRev) !== PLAYER_STAT_REV) migratePlayerStatsB2(out);
     // Older saves can contain a full EXP bar. Resolve it on load too, so a
     // filled bar can never remain stuck until another battle is won.
     applyLevelUps(out);
@@ -8052,6 +8084,8 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     const layer = pack.layer;
     const foes = makeNwPackFoes(pack);
     saveExploreResume();
+    // 主の群れ（主・手下とも）は回避率を半分にして手応えを保つ
+    if (pack.boss) foes.forEach((f) => (f.nwBossPack = true));
     toast(pack.boss ? "北の森" + layer + "層の主との戦い！" : "妖怪の群れとの戦い！");
     beginCombat(foes, () => {
       state.flags.battlesWon++;
@@ -9623,6 +9657,14 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     return Math.max(1, power - defense + rand(-3, 5));
   }
 
+  /** 回避率：(結羅の素早さ／敵の素早さ − 1) × 20%、上限30%（北の森の主の群れは半分・上限15%）。 */
+  function yuraDodgeChance(enemy) {
+    const ratio = playerSpd() / Math.max(1, enemySpd(enemy));
+    let chance = Math.min(0.3, Math.max(0, (ratio - 1) * 0.2));
+    if (enemy && enemy.nwBossPack) chance *= 0.5;
+    return chance;
+  }
+
   /** Incoming clothes damage from one enemy (enemy ATK − player DEF). */
   function calcIncomingClothesDamage(enemy) {
     const p = state.player;
@@ -9847,6 +9889,9 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
           "）！",
         "dmg"
       );
+    } else if (Math.random() < yuraDodgeChance(e)) {
+      // 素早さによる回避（服装への攻撃のみ。魂櫛狙いは回避不可）
+      addLog(e.name + "の攻撃！ 結羅は身をひねってかわした！", "sys");
     } else {
       const dmg = calcIncomingClothesDamage(e);
       const wasClothed = p.clothes > 0;
