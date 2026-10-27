@@ -9665,6 +9665,23 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
     return chance;
   }
 
+  /** 敵の回避率：(敵の素早さ／結羅の素早さ − 1) × 20%、上限30%（北の森の主の群れは半分・上限15%）。敵が速いときのみ。 */
+  function enemyEvadeChance(enemy) {
+    const ratio = enemySpd(enemy) / Math.max(1, playerSpd());
+    let chance = Math.min(0.3, Math.max(0, (ratio - 1) * 0.2));
+    if (enemy && enemy.nwBossPack) chance *= 0.5;
+    return chance;
+  }
+
+  /** 対象ごとに回避判定。かわされたらログを出して true。 */
+  function enemyEvadesYura(enemy) {
+    if (Math.random() < enemyEvadeChance(enemy)) {
+      addLog(enemy.name + "は結羅の攻撃をかわした！", "sys");
+      return true;
+    }
+    return false;
+  }
+
   /** Incoming clothes damage from one enemy (enemy ATK − player DEF). */
   function calcIncomingClothesDamage(enemy) {
     const p = state.player;
@@ -9710,6 +9727,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         return;
       }
       targets.forEach((e) => {
+        if (enemyEvadesYura(e)) return;
         const dmg = calcPlayerSkillDamage(sk, e, dmgBonus);
         e.hp -= dmg;
         addLog("紅霞！ " + e.name + "に" + dmg + "ダメージ！", "dmg");
@@ -9727,6 +9745,10 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
       const e = target;
       if (!e) {
         p.youriki += cost;
+        afterPlayerAction();
+        return;
+      }
+      if (enemyEvadesYura(e)) {
         afterPlayerAction();
         return;
       }
@@ -9755,6 +9777,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
           ? livingEnemies()
           : [target];
       targets.forEach((e) => {
+        if (enemyEvadesYura(e)) return;
         const dmg = calcPlayerSkillDamage(sk, e, dmgBonus);
         e.hp -= dmg;
         e.bound = Math.max(e.bound, sk.turns);
@@ -9782,6 +9805,7 @@ textarea.gb-input { min-height: 96px; resize: vertical; }
         return;
       }
       targets.forEach((e) => {
+        if (enemyEvadesYura(e)) return;
         let dmg = calcPlayerSkillDamage(sk, e, dmgBonus);
         if (sk.dmgScale) dmg = Math.max(1, Math.floor(dmg * sk.dmgScale));
         e.hp -= dmg;
